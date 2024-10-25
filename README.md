@@ -31,7 +31,7 @@ What is Nostr: https://www.nostr.how
 - [ ] Use built-in Tor engine
 - [ ] Multi-account
 - [ ] InBox Relays management
-- [ ] Granulated notification settings
+- [x] Granulated notification settings
 
 # Kudos
 
