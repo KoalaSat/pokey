@@ -29,6 +29,9 @@ class NotificationsViewModel : ViewModel() {
     private val _newReposts = MutableLiveData<Boolean>().apply { value = EncryptedStorage.notifyResposts.value }
     val newReposts: LiveData<Boolean> = _newReposts
 
+    private val _newFollows = MutableLiveData<Boolean>().apply { value = EncryptedStorage.notifyFollows.value }
+    val newFollows: LiveData<Boolean> = _newFollows
+
     init {
         EncryptedStorage.notifyReplies.observeForever { value ->
             _newReplies.value = value
@@ -36,7 +39,6 @@ class NotificationsViewModel : ViewModel() {
         Log.d("Pokey", "_newZaps.value" + _newZaps.value)
         EncryptedStorage.notifyZaps.observeForever { value ->
             _newZaps.value = value
-            Log.d("Pokey", "observeForever" + value)
         }
         EncryptedStorage.notifyQuotes.observeForever { value ->
             _newQuotes.value = value
@@ -52,6 +54,9 @@ class NotificationsViewModel : ViewModel() {
         }
         EncryptedStorage.notifyResposts.observeForever { value ->
             _newReposts.value = value
+        }
+        EncryptedStorage.notifyFollows.observeForever { value ->
+            _newFollows.value = value
         }
     }
 
@@ -72,7 +77,6 @@ class NotificationsViewModel : ViewModel() {
 
     fun updateNotifyZaps(value: Boolean) {
         _newZaps.value = value
-        Log.d("Pokey", "updateNotifyZaps" + value)
         EncryptedStorage.updateNotifyZaps(value)
     }
 
@@ -89,5 +93,10 @@ class NotificationsViewModel : ViewModel() {
     fun updateNotifyReposts(value: Boolean) {
         _newReposts.value = value
         EncryptedStorage.updateNotifyReposts(value)
+    }
+
+    fun updateNotifyFollows(value: Boolean) {
+        _newFollows.value = value
+        EncryptedStorage.updateNotifyFollows(value)
     }
 }

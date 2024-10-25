@@ -20,30 +20,6 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
-      # - name: Setup Dart SDK
-      #   uses: dart-lang/setup-dart@v1.6.5
-
-      # - name: Setup Android SDK
-      #   uses: android-actions/setup-android@v3
-      #   with:
-      #     packages: 'platforms;android-34 build-tools;34.0.0'
-
-      # - name: Verify apksigner
-      #   run: $ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner --version
-
-      # - name: Install Apktool
-      #   run: |
-      #     wget "https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool"
-      #     wget "https://github.com/iBotPeaches/Apktool/releases/download/v2.10.0/apktool_2.10.0.jar"
-      #     mv apktool_2.10.0.jar apktool.jar
-      #     sudo cp apktool /usr/local/bin
-      #     sudo cp apktool.jar /usr/local/bin
-      #     sudo chmod +x /usr/local/bin/apktool
-      #     sudo chmod +x /usr/local/bin/apktool.jar
-
-      # - name: Verify Apktool Installation
-      #   run: apktool --version
-
       - name: Cache gradle
         uses: actions/cache@v4
         with:
@@ -100,29 +76,3 @@ jobs:
           asset_path: app/build/outputs/apk/release/app-release-unsigned-signed.apk
           asset_name: pokey-universal-${{ steps.set_asset_name.outputs.asset_tag }}.apk
           asset_content_type: application/zip
-
-      # - name: Get Zap.Store latest release
-      #   id: get-zap-store-release
-      #   run: |
-      #     LATEST_RELEASE=$(curl -s https://api.github.com/repos/zapstore/zapstore-cli/releases/latest)
-      #     TAG_NAME=$(echo $LATEST_RELEASE | jq -r .tag_name)
-      #     echo "Latest release tag: $TAG_NAME"
-      #     echo "::set-output name=zapstore_version::$TAG_NAME"
-
-      # - name: Publish to Zap.Store
-      #   id: publish-zap-store
-      #   env:
-      #     NSEC: ${{ secrets.POKEY_NSEC }}
-      #   run: |
-      #     mkdir /home/runner/.zapstore
-      #     git clone https://github.com/zapstore/zapstore-cli.git
-      #     cd zapstore-cli
-      #     git fetch --tags
-      #     git checkout ${{ steps.get-zap-store-release.outputs.zapstore_version }}
-      #     dart pub get
-      #     dart compile exe lib/main.dart -o build
-      #     cd $GITHUB_WORKSPACE
-      #     APKSIGNER_PATH=$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner ./zapstore-cli/build publish pokey
-
-
-          

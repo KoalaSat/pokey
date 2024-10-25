@@ -16,6 +16,7 @@ object PrefKeys {
     const val NOTIFY_REACTIONS = "notify_reactions"
     const val NOTIFY_MENTIONS = "notify_mentions"
     const val NOTIFY_REPOSTS = "notify_reposts"
+    const val NOTIFY_FOLLOWS = "notify_follows"
 }
 object DefaultKeys {
     const val NOTIFY_REPLIES = true
@@ -25,6 +26,7 @@ object DefaultKeys {
     const val NOTIFY_QUOTES = true
     const val NOTIFY_MENTIONS = true
     const val NOTIFY_REPOSTS = true
+    const val NOTIFY_FOLLOWS = true
 }
 
 object EncryptedStorage {
@@ -49,6 +51,8 @@ object EncryptedStorage {
     val notifyMentions: LiveData<Boolean> get() = _notifyMentions
     private val _notifyResposts = MutableLiveData<Boolean>().apply { DefaultKeys.NOTIFY_REPOSTS }
     val notifyResposts: LiveData<Boolean> get() = _notifyResposts
+    private val _notifyFollows = MutableLiveData<Boolean>().apply { DefaultKeys.NOTIFY_FOLLOWS }
+    val notifyFollows: LiveData<Boolean> get() = _notifyFollows
 
     fun init(context: Context) {
         val masterKey: MasterKey =
@@ -72,6 +76,7 @@ object EncryptedStorage {
         _notifyQuotes.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_QUOTES, DefaultKeys.NOTIFY_QUOTES)
         _notifyMentions.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_MENTIONS, DefaultKeys.NOTIFY_MENTIONS)
         _notifyResposts.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_REPOSTS, DefaultKeys.NOTIFY_REPOSTS)
+        _notifyFollows.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_FOLLOWS, DefaultKeys.NOTIFY_FOLLOWS)
     }
 
     fun updatePubKey(newValue: String) {
@@ -112,5 +117,10 @@ object EncryptedStorage {
     fun updateNotifyReposts(newValue: Boolean) {
         sharedPreferences.edit().putBoolean(PrefKeys.NOTIFY_REPOSTS, newValue).apply()
         _notifyResposts.value = newValue
+    }
+
+    fun updateNotifyFollows(newValue: Boolean) {
+        sharedPreferences.edit().putBoolean(PrefKeys.NOTIFY_FOLLOWS, newValue).apply()
+        _notifyFollows.value = newValue
     }
 }
