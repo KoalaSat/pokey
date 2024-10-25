@@ -34,8 +34,8 @@ jobs:
       # - name: Install Apktool
       #   run: |
       #     wget "https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool"
-      #     wget "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.4.1.jar"
-      #     mv apktool_2.4.1.jar apktool.jar
+      #     wget "https://github.com/iBotPeaches/Apktool/releases/download/v2.10.0/apktool_2.10.0.jar"
+      #     mv apktool_2.10.0.jar apktool.jar
       #     sudo cp apktool /usr/local/bin
       #     sudo cp apktool.jar /usr/local/bin
       #     sudo chmod +x /usr/local/bin/apktool

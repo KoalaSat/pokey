@@ -291,7 +291,7 @@ class NotificationsService : Service() {
         val notificationBuilder =
             NotificationCompat.Builder(this, channelRelaysId)
                 .setContentTitle(getString(R.string.pokey_is_running_in_background))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setPriority(NotificationCompat.PRIORITY_MIN)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
 
         return notificationBuilder.build()
@@ -360,7 +360,7 @@ class NotificationsService : Service() {
                     title = getString(R.string.new_repost)
                     nip32Bech32 = Hex.decode(event.id).toNote()
                 }
-                4, 13 -> {
+                4, 1059 -> {
                     if (!EncryptedStorage.notifyPrivate.value!!) return@launch
 
                     title = getString(R.string.new_private)
