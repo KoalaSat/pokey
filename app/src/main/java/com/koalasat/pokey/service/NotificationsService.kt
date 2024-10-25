@@ -393,7 +393,7 @@ class NotificationsService : Service() {
                     if (event.taggedUsers().last() != EncryptedStorage.pubKey.value) return@launch
 
                     title = getString(R.string.new_follow)
-                    nip32Bech32 = Hex.decode(event.pubKey).toNote()
+                    nip32Bech32 = Hex.decode(event.pubKey).toNpub()
                 }
             }
 
