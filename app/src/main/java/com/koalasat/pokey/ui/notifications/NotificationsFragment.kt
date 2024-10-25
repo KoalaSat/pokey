@@ -1,7 +1,6 @@
 package com.koalasat.pokey.ui.notifications
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -39,7 +38,6 @@ class NotificationsFragment : Fragment() {
             viewModel.updateNotifyZaps(isChecked)
         }
         viewModel.newZaps.observe(viewLifecycleOwner) { value ->
-            Log.d("Pokey", "binding.newZaps.isChecked" + binding.newZaps.isChecked)
             binding.newZaps.isChecked = value
         }
 
@@ -81,6 +79,14 @@ class NotificationsFragment : Fragment() {
         }
         viewModel.newReposts.observe(viewLifecycleOwner) { value ->
             binding.newReposts.isChecked = value
+        }
+
+        viewModel.newFollows.value.apply { EncryptedStorage.notifyFollows.value }
+        binding.newFollows.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.updateNotifyFollows(isChecked)
+        }
+        viewModel.newFollows.observe(viewLifecycleOwner) { value ->
+            binding.newFollows.isChecked = value.apply { EncryptedStorage.notifyFollows.value }
         }
 
         return root

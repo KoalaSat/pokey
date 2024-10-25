@@ -33,4 +33,5 @@
     <string name="active_quotes">New quotes</string>
     <string name="active_mentions">New mentions</string>
     <string name="active_reposts">New reposts</string>
+    <string name="active_follows">New follows</string>
 </resources>

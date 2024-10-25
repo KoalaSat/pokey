@@ -388,6 +388,13 @@ class NotificationsService : Service() {
                         text = "⚡ $sats Sats"
                     }
                 }
+                3 -> {
+                    if (!EncryptedStorage.notifyFollows.value!!) return@launch
+                    if (event.taggedUsers().last() != EncryptedStorage.pubKey.value) return@launch
+
+                    title = getString(R.string.new_follow)
+                    nip32Bech32 = Hex.decode(event.pubKey).toNote()
+                }
             }
 
             if (title.isEmpty()) return@launch
