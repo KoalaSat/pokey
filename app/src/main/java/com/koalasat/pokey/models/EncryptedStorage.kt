@@ -121,6 +121,6 @@ object EncryptedStorage {
 
     fun updateNotifyFollows(newValue: Boolean) {
         sharedPreferences.edit().putBoolean(PrefKeys.NOTIFY_FOLLOWS, newValue).apply()
-        _notifyResposts.value = newValue
+        _notifyFollows.value = newValue
     }
 }
