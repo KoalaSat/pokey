@@ -60,6 +60,7 @@
             android:layout_width="57dp"
             android:layout_height="48dp"
             android:layout_marginStart="9dp"
+            android:padding="6dp"
             android:drawableTop="@drawable/ic_amber"
             android:drawablePadding="22dp"
             android:gravity="center"

@@ -384,7 +384,7 @@ class NotificationsService : Service() {
                     title = getString(R.string.new_zap)
                     val bolt11 = event.firstTag("bolt11")
                     if (!bolt11.isNullOrEmpty()) {
-                        val sats = LnInvoiceUtil.getAmountInSats(bolt11)
+                        val sats = LnInvoiceUtil.getAmountInSats(bolt11).toInt()
                         text = "⚡ $sats Sats"
                     }
                 }
