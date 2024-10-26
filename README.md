@@ -3,6 +3,8 @@
 [![release](https://img.shields.io/github/v/release/KoalaSat/pokey)](https://github.com/KoalaSat/nostros/pokey)
 [![MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/KoalaSat/pokey/blob/main/LICENSE)
 
+ Receive live notifications for your nostr events and allow other apps to receive and interact with them.
+
 <div align="center">
     <img src="https://github.com/KoalaSat/pokey/blob/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="Description of Image" />
 </div>

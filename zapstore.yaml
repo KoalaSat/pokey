@@ -2,7 +2,7 @@ pokey:
   android:
     identifier: com.koalasat.pokey
     name: Pokey
-    description: Nostr pull notifications on Android. Receive live notification on your events and allow other app the receive and interact with them.
+    description: Nostr pull notifications on Android. Receive live notifications for your nostr events and allow other apps to receive and interact with them.
     repository: https://github.com/koalasat/pokey
     license: MIT
     artifacts:
