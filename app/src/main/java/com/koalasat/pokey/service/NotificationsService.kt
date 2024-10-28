@@ -38,34 +38,11 @@ import java.time.Instant
 import java.util.Timer
 import java.util.TimerTask
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.LinkedBlockingQueue
-import kotlin.concurrent.thread
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-class QueueSystem(private val onProcess: (Event) -> Unit) {
-    private val queue = LinkedBlockingQueue<Event>()
-    private val processedEvents = ConcurrentHashMap.newKeySet<String>()
-
-    init {
-        thread(start = true) {
-            while (true) {
-                val event = queue.take()
-                // Check for duplication
-                if (processedEvents.add(event.id)) {
-                    onProcess(event)
-                }
-            }
-        }
-    }
-
-    fun add(event: Event) {
-        queue.offer(event)
-    }
-}
 
 class NotificationsService : Service() {
     private var channelRelaysId = "RelaysConnections"
@@ -77,6 +54,7 @@ class NotificationsService : Service() {
 
     private val timer = Timer()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val processedEvents = ConcurrentHashMap<String, Boolean>()
 
     private val clientListener =
         object : Client.Listener {
@@ -105,8 +83,10 @@ class NotificationsService : Service() {
                 relay: Relay,
                 afterEOSE: Boolean,
             ) {
-                Log.d("Pokey", "Relay Event: ${relay.url} - $subscriptionId - ${event.toJson()}")
-                eventsQueue.add(event)
+                if (processedEvents.putIfAbsent(event.id, true) == null) {
+                    Log.d("Pokey", "Relay Event: ${relay.url} - $subscriptionId - ${event.toJson()}")
+                    createNoteNotification(event)
+                }
             }
 
             override fun onNotify(relay: Relay, description: String) {
@@ -174,7 +154,6 @@ class NotificationsService : Service() {
         "wss://relay.nsec.app",
         "wss://relay.0xchat.com",
     )
-    private var eventsQueue = QueueSystem { createNoteNotification(it) }
 
     override fun onBind(intent: Intent): IBinder {
         return null!!
