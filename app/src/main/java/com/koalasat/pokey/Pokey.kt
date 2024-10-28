@@ -7,9 +7,12 @@ import android.content.Intent
 import android.content.SharedPreferences
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.koalasat.pokey.models.EncryptedStorage
 import com.koalasat.pokey.service.NotificationsService
 import com.vitorpamplona.ammolite.relays.Client
 import com.vitorpamplona.ammolite.relays.RelayPool
+import com.vitorpamplona.quartz.encoders.Nip19Bech32
+import com.vitorpamplona.quartz.encoders.Nip19Bech32.uriToRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,6 +53,18 @@ class Pokey : Application() {
 
     fun contentResolverFn(): ContentResolver = contentResolver
 
+    fun getHexKey(): String {
+        val pubKey = EncryptedStorage.pubKey.value
+        var hexKey = ""
+        val parseReturn = uriToRoute(pubKey)
+        when (val parsed = parseReturn?.entity) {
+            is Nip19Bech32.NPub -> {
+                hexKey = parsed.hex
+            }
+        }
+        return hexKey
+    }
+
     companion object {
         private val _isEnabled = MutableLiveData(false)
         val isEnabled: LiveData<Boolean> get() = _isEnabled
@@ -66,17 +81,17 @@ class Pokey : Application() {
             _isEnabled.value = value
         }
 
+        fun isForegroundServiceEnabled(context: Context): Boolean {
+            val sharedPreferences: SharedPreferences = context.getSharedPreferences("PokeyPreferences", Context.MODE_PRIVATE)
+            return sharedPreferences.getBoolean("foreground_service_enabled", false)
+        }
+
         private fun saveForegroundServicePreference(context: Context, value: Boolean) {
             val sharedPreferences: SharedPreferences = context.getSharedPreferences("PokeyPreferences", Context.MODE_PRIVATE)
             val editor = sharedPreferences.edit()
             editor.putBoolean("foreground_service_enabled", value)
             editor.apply()
             updateIsEnabled(value)
-        }
-
-        fun isForegroundServiceEnabled(context: Context): Boolean {
-            val sharedPreferences: SharedPreferences = context.getSharedPreferences("PokeyPreferences", Context.MODE_PRIVATE)
-            return sharedPreferences.getBoolean("foreground_service_enabled", false)
         }
     }
 }

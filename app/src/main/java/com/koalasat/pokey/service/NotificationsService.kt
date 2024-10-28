@@ -13,11 +13,13 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.koalasat.pokey.Connectivity
+import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.R
 import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.database.NotificationEntity
 import com.koalasat.pokey.database.RelayEntity
 import com.koalasat.pokey.models.EncryptedStorage
+import com.koalasat.pokey.models.ExternalSigner
 import com.vitorpamplona.ammolite.relays.COMMON_FEED_TYPES
 import com.vitorpamplona.ammolite.relays.Client
 import com.vitorpamplona.ammolite.relays.EVENT_FINDER_TYPES
@@ -28,8 +30,6 @@ import com.vitorpamplona.ammolite.relays.filters.EOSETime
 import com.vitorpamplona.ammolite.relays.filters.SincePerRelayFilter
 import com.vitorpamplona.quartz.encoders.Hex
 import com.vitorpamplona.quartz.encoders.LnInvoiceUtil
-import com.vitorpamplona.quartz.encoders.Nip19Bech32
-import com.vitorpamplona.quartz.encoders.Nip19Bech32.uriToRoute
 import com.vitorpamplona.quartz.encoders.toNote
 import com.vitorpamplona.quartz.encoders.toNpub
 import com.vitorpamplona.quartz.events.Event
@@ -67,7 +67,10 @@ class NotificationsService : Service() {
     private val clientListener =
         object : Client.Listener {
             override fun onAuth(relay: Relay, challenge: String) {
-                Log.d("Pokey", "Relay on Auth: ${relay.url}")
+                Log.d("Pokey", "Relay on Auth: ${relay.url} : $challenge")
+                ExternalSigner.auth(relay.url, challenge) { result ->
+                    Log.d("Pokey", "Relay on Auth response: ${relay.url} : $result")
+                }
             }
 
             override fun onSend(relay: Relay, msg: String, success: Boolean) {
@@ -161,6 +164,7 @@ class NotificationsService : Service() {
         val connectivityManager =
             (getSystemService(ConnectivityManager::class.java) as ConnectivityManager)
         connectivityManager.registerDefaultNetworkCallback(networkCallback)
+
         super.onCreate()
     }
 
@@ -187,20 +191,20 @@ class NotificationsService : Service() {
                 (getSystemService(ConnectivityManager::class.java) as ConnectivityManager)
             connectivityManager.unregisterNetworkCallback(networkCallback)
         } catch (e: Exception) {
-            Log.d("connectivityManager", "Failed to unregisterNetworkCallback", e)
+            Log.d("Pokey", "Failed to unregisterNetworkCallback", e)
         }
 
         super.onDestroy()
     }
 
     private fun startSubscription() {
-        val hexKey = getHexKey()
+        val hexKey = Pokey.getInstance().getHexKey()
         if (hexKey.isEmpty()) return
 
         CoroutineScope(Dispatchers.IO).launch {
             if (!Client.isSubscribed(clientListener)) Client.subscribe(clientListener)
 
-            val dao = AppDatabase.getDatabase(this@NotificationsService, getHexKey()).applicationDao()
+            val dao = AppDatabase.getDatabase(this@NotificationsService, hexKey).applicationDao()
             var latestNotification = dao.getLatestNotification()
             if (latestNotification == null) latestNotification = Instant.now().toEpochMilli() / 1000
 
@@ -299,7 +303,7 @@ class NotificationsService : Service() {
 
     private fun manageInboxRelays(event: Event) {
         CoroutineScope(Dispatchers.IO).launch {
-            val dao = AppDatabase.getDatabase(this@NotificationsService, getHexKey()).applicationDao()
+            val dao = AppDatabase.getDatabase(this@NotificationsService, Pokey.getInstance().getHexKey()).applicationDao()
             val lastCreatedRelayAt = dao.getLatestRelaysByKind(event.kind)
 
             if (lastCreatedRelayAt == null || lastCreatedRelayAt < event.createdAt) {
@@ -318,11 +322,11 @@ class NotificationsService : Service() {
     }
 
     private fun createNoteNotification(event: Event) {
-        val hexKey = getHexKey()
+        val hexKey = Pokey.getInstance().getHexKey()
         if (event.pubKey == hexKey || !event.taggedUsers().contains(hexKey)) return
 
         CoroutineScope(Dispatchers.IO).launch {
-            val dao = AppDatabase.getDatabase(this@NotificationsService, getHexKey()).applicationDao()
+            val dao = AppDatabase.getDatabase(this@NotificationsService, hexKey).applicationDao()
             val existsEvent = dao.existsNotification(event.id)
             if (existsEvent > 0) return@launch
 
@@ -431,25 +435,14 @@ class NotificationsService : Service() {
         notificationManager.notify(event.hashCode(), builder.build())
     }
 
-    private fun getHexKey(): String {
-        val pubKey = EncryptedStorage.pubKey.value
-        var hexKey = ""
-        val parseReturn = uriToRoute(pubKey)
-        when (val parsed = parseReturn?.entity) {
-            is Nip19Bech32.NPub -> {
-                hexKey = parsed.hex
-            }
-        }
-        return hexKey
-    }
-
     private fun connectRelays() {
         RelayPool.unloadRelays()
-        val dao = AppDatabase.getDatabase(this@NotificationsService, getHexKey()).applicationDao()
+        val dao = AppDatabase.getDatabase(this@NotificationsService, Pokey.getInstance().getHexKey()).applicationDao()
         var relays = dao.getRelays()
         if (relays.isEmpty()) {
             relays = defaultRelayUrls.map { RelayEntity(id = 0, url = it, kind = 0, createdAt = 0) }
         }
+
         relays.forEach {
             Client.sendFilterOnlyIfDisconnected()
             RelayPool.addRelay(
