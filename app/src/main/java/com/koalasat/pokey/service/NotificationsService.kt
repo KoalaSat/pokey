@@ -37,6 +37,7 @@ import com.vitorpamplona.quartz.events.EventInterface
 import java.time.Instant
 import java.util.Timer
 import java.util.TimerTask
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -51,18 +52,9 @@ class NotificationsService : Service() {
     private var subscriptionInboxId = "inboxRelays"
     private var subscriptionReadId = "readRelays"
 
-    private var receivedEventsCache = mutableSetOf<String>()
-    private var defaultRelayUrls = listOf(
-        "wss://relay.damus.io",
-        "wss://offchain.pub",
-        "wss://relay.snort.social",
-        "wss://nos.lol",
-        "wss://relay.nsec.app",
-        "wss://relay.0xchat.com",
-    )
-
     private val timer = Timer()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val processedEvents = ConcurrentHashMap<String, Boolean>()
 
     private val clientListener =
         object : Client.Listener {
@@ -91,10 +83,8 @@ class NotificationsService : Service() {
                 relay: Relay,
                 afterEOSE: Boolean,
             ) {
-                if (receivedEventsCache.contains(event.id)) return
-                Log.d("Pokey", "Relay Event: ${relay.url} - $subscriptionId - ${event.toJson()}")
-                receivedEventsCache.add(event.id)
-                if (subscriptionId == subscriptionNotificationId) {
+                if (processedEvents.putIfAbsent(event.id, true) == null) {
+                    Log.d("Pokey", "Relay Event: ${relay.url} - $subscriptionId - ${event.toJson()}")
                     createNoteNotification(event)
                 }
             }
@@ -156,6 +146,15 @@ class NotificationsService : Service() {
             }
         }
 
+    private var defaultRelayUrls = listOf(
+        "wss://relay.damus.io",
+        "wss://offchain.pub",
+        "wss://relay.snort.social",
+        "wss://nos.lol",
+        "wss://relay.nsec.app",
+        "wss://relay.0xchat.com",
+    )
+
     override fun onBind(intent: Intent): IBinder {
         return null!!
     }
@@ -170,9 +169,13 @@ class NotificationsService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("Pokey", "Starting foreground service...")
+        RelayPool.getAll().forEach { RelayPool.removeRelay(it) }
         startForeground(1, createNotification())
-        startSubscription()
-        keepAlive()
+        CoroutineScope(Dispatchers.IO).launch {
+            connectRelays()
+            startSubscription()
+            keepAlive()
+        }
 
         val connectivityManager =
             (getSystemService(ConnectivityManager::class.java) as ConnectivityManager)
@@ -183,8 +186,7 @@ class NotificationsService : Service() {
 
     override fun onDestroy() {
         timer.cancel()
-        stopSubscription()
-        RelayPool.disconnect()
+        RelayPool.getAll().forEach { RelayPool.removeRelay(it) }
 
         try {
             val connectivityManager =
@@ -201,53 +203,50 @@ class NotificationsService : Service() {
         val hexKey = Pokey.getInstance().getHexKey()
         if (hexKey.isEmpty()) return
 
-        CoroutineScope(Dispatchers.IO).launch {
-            if (!Client.isSubscribed(clientListener)) Client.subscribe(clientListener)
+        if (!Client.isSubscribed(clientListener)) Client.subscribe(clientListener)
 
-            val dao = AppDatabase.getDatabase(this@NotificationsService, hexKey).applicationDao()
-            var latestNotification = dao.getLatestNotification()
-            if (latestNotification == null) latestNotification = Instant.now().toEpochMilli() / 1000
+        val dao = AppDatabase.getDatabase(this@NotificationsService, hexKey).applicationDao()
+        var latestNotification = dao.getLatestNotification()
+        if (latestNotification == null) latestNotification = Instant.now().toEpochMilli() / 1000
 
-            connectRelays()
-            Client.sendFilter(
-                subscriptionNotificationId,
-                listOf(
-                    TypedFilter(
-                        types = COMMON_FEED_TYPES,
-                        filter = SincePerRelayFilter(
-                            tags = mapOf("p" to listOf(hexKey)),
-                            since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification) },
-                        ),
+        Client.sendFilter(
+            subscriptionNotificationId,
+            listOf(
+                TypedFilter(
+                    types = COMMON_FEED_TYPES,
+                    filter = SincePerRelayFilter(
+                        tags = mapOf("p" to listOf(hexKey)),
+                        since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification) },
                     ),
                 ),
-            )
-            Client.sendFilterAndStopOnFirstResponse(
-                subscriptionReadId,
-                listOf(
-                    TypedFilter(
-                        types = EVENT_FINDER_TYPES,
-                        filter = SincePerRelayFilter(
-                            kinds = listOf(10002),
-                            authors = listOf(hexKey),
-                        ),
+            ),
+        )
+        Client.sendFilterAndStopOnFirstResponse(
+            subscriptionReadId,
+            listOf(
+                TypedFilter(
+                    types = EVENT_FINDER_TYPES,
+                    filter = SincePerRelayFilter(
+                        kinds = listOf(10002),
+                        authors = listOf(hexKey),
                     ),
                 ),
-                onResponse = { manageInboxRelays(it) },
-            )
-            Client.sendFilterAndStopOnFirstResponse(
-                subscriptionInboxId,
-                listOf(
-                    TypedFilter(
-                        types = EVENT_FINDER_TYPES,
-                        filter = SincePerRelayFilter(
-                            kinds = listOf(10050),
-                            authors = listOf(hexKey),
-                        ),
+            ),
+            onResponse = { manageInboxRelays(it) },
+        )
+        Client.sendFilterAndStopOnFirstResponse(
+            subscriptionInboxId,
+            listOf(
+                TypedFilter(
+                    types = EVENT_FINDER_TYPES,
+                    filter = SincePerRelayFilter(
+                        kinds = listOf(10050),
+                        authors = listOf(hexKey),
                     ),
                 ),
-                onResponse = { manageInboxRelays(it) },
-            )
-        }
+            ),
+            onResponse = { manageInboxRelays(it) },
+        )
     }
 
     private fun stopSubscription() {
@@ -258,24 +257,21 @@ class NotificationsService : Service() {
         timer.schedule(
             object : TimerTask() {
                 override fun run() {
-                    receivedEventsCache.clear()
-                    CoroutineScope(Dispatchers.IO).launch {
-                        if (RelayPool.getAll().isEmpty()) {
-                            connectRelays()
-                        }
-                        RelayPool.getAll().forEach {
-                            if (!it.isConnected()) {
-                                Log.d(
-                                    "Pokey",
-                                    "Relay ${it.url} is not connected, reconnecting...",
-                                )
-                                it.connectAndSendFiltersIfDisconnected()
-                            }
+                    if (RelayPool.getAll().isEmpty()) {
+                        connectRelays()
+                    }
+                    RelayPool.getAll().forEach {
+                        if (!it.isConnected()) {
+                            Log.d(
+                                "Pokey",
+                                "Relay ${it.url} is not connected, reconnecting...",
+                            )
+                            it.connectAndSendFiltersIfDisconnected()
                         }
                     }
                 }
             },
-            5000,
+            0,
             61000,
         )
     }
@@ -427,8 +423,9 @@ class NotificationsService : Service() {
             )
                 .setContentTitle(title)
                 .setContentText(text)
+                .setWhen(event.createdAt)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
 
