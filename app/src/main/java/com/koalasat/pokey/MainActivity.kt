@@ -15,6 +15,7 @@ import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.koalasat.pokey.databinding.ActivityMainBinding
 import com.koalasat.pokey.models.EncryptedStorage
+import com.koalasat.pokey.models.ExternalSigner
 
 class MainActivity : AppCompatActivity() {
     private val requestCodePostNotifications: Int = 1
@@ -24,6 +25,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         EncryptedStorage.init(this)
+        ExternalSigner.init(this)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)

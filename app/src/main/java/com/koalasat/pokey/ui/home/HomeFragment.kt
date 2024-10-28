@@ -31,8 +31,6 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val externalSigner = ExternalSigner(this)
-
         binding.npubInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
@@ -79,7 +77,7 @@ class HomeFragment : Fragment() {
         }
 
         binding.amber.setOnClickListener {
-            externalSigner.savePubKey()
+            ExternalSigner.savePubKey()
         }
     }
 
