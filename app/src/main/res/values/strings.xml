@@ -7,6 +7,7 @@
     <string name="title_notifications">Notifications</string>
     <string name="pokey_is_running_in_background">Pokey is running in background</string>
     <string name="amber_not_found">Amber not installed</string>
+    <string name="inbox_relays_error">Your DM inbox relays are not configured</string>
     <string name="relays_connection">Relays connection</string>
     <string name="notifications">Notifications</string>
     <string name="new_mention">New mention</string>

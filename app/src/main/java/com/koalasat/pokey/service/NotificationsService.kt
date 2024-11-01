@@ -43,6 +43,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONException
+import org.json.JSONObject
 
 class NotificationsService : Service() {
     private var channelRelaysId = "RelaysConnections"
@@ -215,6 +217,7 @@ class NotificationsService : Service() {
                 TypedFilter(
                     types = COMMON_FEED_TYPES,
                     filter = SincePerRelayFilter(
+                        kinds = listOf(1, 3, 4, 6, 7, 1059, 9735),
                         tags = mapOf("p" to listOf(hexKey)),
                         since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification) },
                     ),
@@ -305,13 +308,29 @@ class NotificationsService : Service() {
             if (lastCreatedRelayAt == null || lastCreatedRelayAt < event.createdAt) {
                 stopSubscription()
                 dao.deleteRelaysByKind(event.kind)
+
                 event.tags
                     .filter { it.size > 1 && (it[0] == "relay" || it[0] == "r") }
-                    .map {
-                        val entity = RelayEntity(id = 0, url = it[1], kind = event.kind, createdAt = event.createdAt)
-                        dao.insertRelay(entity)
-                        entity
+                    .forEach {
+                        var read = true
+                        if (event.kind == 10002) {
+                            try {
+                                val relaysConfig = JSONObject(event.content)
+                                val config = relaysConfig.getJSONObject(it[1])
+                                read = config.getBoolean("read")
+                            } catch (_: JSONException) {
+                                Log.d(
+                                    "Pokey",
+                                    "Public inbox relays not configured",
+                                )
+                            }
+                        }
+                        if (read) {
+                            val entity = RelayEntity(id = 0, url = it[1], kind = event.kind, createdAt = event.createdAt)
+                            dao.insertRelay(entity)
+                        }
                     }
+
                 startSubscription()
             }
         }
@@ -433,7 +452,6 @@ class NotificationsService : Service() {
     }
 
     private fun connectRelays() {
-        RelayPool.unloadRelays()
         val dao = AppDatabase.getDatabase(this@NotificationsService, Pokey.getInstance().getHexKey()).applicationDao()
         var relays = dao.getRelays()
         if (relays.isEmpty()) {
@@ -442,15 +460,17 @@ class NotificationsService : Service() {
 
         relays.forEach {
             Client.sendFilterOnlyIfDisconnected()
-            RelayPool.addRelay(
-                Relay(
-                    it.url,
-                    read = true,
-                    write = false,
-                    forceProxy = false,
-                    activeTypes = COMMON_FEED_TYPES,
-                ),
-            )
+            if (RelayPool.getRelays(it.url).isEmpty()) {
+                RelayPool.addRelay(
+                    Relay(
+                        it.url,
+                        read = true,
+                        write = false,
+                        forceProxy = false,
+                        activeTypes = COMMON_FEED_TYPES,
+                    ),
+                )
+            }
         }
     }
 }
