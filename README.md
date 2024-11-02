@@ -28,8 +28,8 @@ What is Nostr: https://www.nostr.how
 
 - [x] Finish POC
 - [x] Connect with Amber
-- [ ] Broadcast to other apps
-- [ ] Auth to relays
+- [x] Broadcast to other apps
+- [x] Auth to relays
 - [ ] Use built-in Tor engine
 - [ ] Multi-account
 - [ ] InBox Relays management
