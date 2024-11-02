@@ -19,6 +19,6 @@ data class RelayEntity(
     val url: String,
     val kind: Int,
     val createdAt: Long,
-    val read: Boolean,
-    val write: Boolean,
+    val read: Int,
+    val write: Int,
 )

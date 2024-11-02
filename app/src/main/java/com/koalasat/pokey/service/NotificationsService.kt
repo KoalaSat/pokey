@@ -321,11 +321,11 @@ class NotificationsService : Service() {
                 event.tags
                     .filter { it.size > 1 && (it[0] == "relay" || it[0] == "r") }
                     .forEach {
-                        var read = true
-                        var write = true
+                        var read = 1
+                        var write = 1
                         if (event.kind == 10002 && it.size > 2) {
-                            read = it[2] == "read"
-                            write = it[2] == "write"
+                            read = if (it[2] == "read") 1 else 0
+                            write = if (it[2] == "write") 1 else 0
                         }
                         val entity = RelayEntity(id = 0, url = it[1], kind = event.kind, createdAt = event.createdAt, read = read, write = write)
                         dao.insertRelay(entity)
@@ -453,7 +453,7 @@ class NotificationsService : Service() {
         val dao = AppDatabase.getDatabase(this@NotificationsService, Pokey.getInstance().getHexKey()).applicationDao()
         var relays = dao.getReadRelays()
         if (relays.isEmpty()) {
-            relays = defaultRelayUrls.map { RelayEntity(id = 0, url = it, kind = 0, createdAt = 0, read = true, write = true) }
+            relays = defaultRelayUrls.map { RelayEntity(id = 0, url = it, kind = 0, createdAt = 0, read = 1, write = 1) }
         }
 
         relays.forEach {
