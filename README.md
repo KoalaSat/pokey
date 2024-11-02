@@ -35,6 +35,31 @@ What is Nostr: https://www.nostr.how
 - [ ] InBox Relays management
 - [x] Granulated notification settings
 
+# Receiving nostr events on your app
+
+1. Register the intent filter in the `AndroidManifest.xml` file:
+```xml
+<receiver android:name=".MyBroadcastReceiver">
+    <intent-filter>
+        <action android:name="com.shared.NOSTR" />
+    </intent-filter>
+</receiver>
+```
+2. Register receiver in your Service or Activity:
+```kotlin
+override fun onStart() {
+    super.onStart()
+    val filter = IntentFilter("com.shared.NOSTR")
+    registerReceiver(myBroadcastReceiver, filter)
+}
+
+override fun onStop() {
+    super.onStop()
+    unregisterReceiver(myBroadcastReceiver)
+}
+
+```
+
 # Kudos
 
 - Inspired by [https://github.com/greenart7c3/Amber](https://github.com/greenart7c3/Amber)
