@@ -45,6 +45,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class NotificationsService : Service() {
+    private var broadcastIntentName = "com.shared.NOSTR"
     private var channelRelaysId = "RelaysConnections"
     private var channelNotificationsId = "Notifications"
 
@@ -85,7 +86,15 @@ class NotificationsService : Service() {
             ) {
                 if (processedEvents.putIfAbsent(event.id, true) == null) {
                     Log.d("Pokey", "Relay Event: ${relay.url} - $subscriptionId - ${event.toJson()}")
+
+                    val hexKey = Pokey.getInstance().getHexKey()
+                    if (event.pubKey == hexKey || !event.taggedUsers().contains(hexKey)) return
+
                     createNoteNotification(event)
+
+                    val intent = Intent(broadcastIntentName)
+                    intent.putExtra("EVENT", event.toJson())
+                    sendBroadcast(intent)
                 }
             }
 
@@ -326,11 +335,8 @@ class NotificationsService : Service() {
     }
 
     private fun createNoteNotification(event: Event) {
-        val hexKey = Pokey.getInstance().getHexKey()
-        if (event.pubKey == hexKey || !event.taggedUsers().contains(hexKey)) return
-
         CoroutineScope(Dispatchers.IO).launch {
-            val dao = AppDatabase.getDatabase(this@NotificationsService, hexKey).applicationDao()
+            val dao = AppDatabase.getDatabase(this@NotificationsService, Pokey.getInstance().getHexKey()).applicationDao()
             val existsEvent = dao.existsNotification(event.id)
             if (existsEvent > 0) return@launch
 
