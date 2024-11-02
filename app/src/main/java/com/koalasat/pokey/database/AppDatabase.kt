@@ -14,8 +14,8 @@ import com.vitorpamplona.ammolite.relays.RelaySetupInfo
 val MIGRATION_5_6 =
     object : Migration(5, 6) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("ALTER TABLE `relay` ADD COLUMN `read` BOOLEAN NOT NULL DEFAULT TRUE")
-            db.execSQL("ALTER TABLE `relay` ADD COLUMN `write` BOOLEAN NOT NULL DEFAULT TRUE")
+            db.execSQL("ALTER TABLE `relay` ADD COLUMN `read` INT NOT NULL DEFAULT TRUE")
+            db.execSQL("ALTER TABLE `relay` ADD COLUMN `write` INT NOT NULL DEFAULT TRUE")
         }
     }
 
