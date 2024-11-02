@@ -35,7 +35,7 @@ What is Nostr: https://www.nostr.how
 - [ ] InBox Relays management
 - [x] Granulated notification settings
 
-# Receiving nostr events on your app
+# Receiving user's nostr events in your app
 
 1. Register the intent filter in the `AndroidManifest.xml` file:
 ```xml
