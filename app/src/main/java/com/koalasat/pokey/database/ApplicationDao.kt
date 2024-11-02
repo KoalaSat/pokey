@@ -22,6 +22,9 @@ interface ApplicationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertRelay(notificationEntity: RelayEntity): Long?
 
+    @Query("SELECT * FROM relay where kind = :kind")
+    fun getRelaysByKind(kind: Int): List<RelayEntity>
+
     @Query("DELETE FROM relay where kind = :kind")
     fun deleteRelaysByKind(kind: Int): Int
 

@@ -127,6 +127,7 @@ class NotificationsService : Service() {
                     scope.launch(Dispatchers.IO) {
                         stopSubscription()
                         delay(1000)
+                        connectRelays()
                         startSubscription()
                     }
                 }
@@ -149,6 +150,7 @@ class NotificationsService : Service() {
                     if (Connectivity.updateNetworkCapabilities(networkCapabilities)) {
                         stopSubscription()
                         delay(1000)
+                        connectRelays()
                         startSubscription()
                     }
                 }
@@ -261,6 +263,7 @@ class NotificationsService : Service() {
 
     private fun stopSubscription() {
         Client.unsubscribe(clientListener)
+        RelayPool.unloadRelays()
     }
 
     private fun keepAlive() {
@@ -313,9 +316,8 @@ class NotificationsService : Service() {
             val lastCreatedRelayAt = dao.getLatestRelaysByKind(event.kind)
 
             if (lastCreatedRelayAt == null || lastCreatedRelayAt < event.createdAt) {
-                stopSubscription()
+                RelayPool.unloadRelays()
                 dao.deleteRelaysByKind(event.kind)
-
                 event.tags
                     .filter { it.size > 1 && (it[0] == "relay" || it[0] == "r") }
                     .forEach {
@@ -329,6 +331,7 @@ class NotificationsService : Service() {
                         dao.insertRelay(entity)
                     }
 
+                connectRelays()
                 startSubscription()
             }
         }
