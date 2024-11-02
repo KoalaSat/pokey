@@ -16,8 +16,8 @@ interface ApplicationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertNotification(notificationEntity: NotificationEntity): Long?
 
-    @Query("SELECT * FROM relay")
-    fun getRelays(): List<RelayEntity>
+    @Query("SELECT * FROM relay WHERE read = 1")
+    fun getReadRelays(): List<RelayEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertRelay(notificationEntity: RelayEntity): Long?

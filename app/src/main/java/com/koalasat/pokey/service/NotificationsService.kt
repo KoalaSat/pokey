@@ -43,8 +43,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.json.JSONException
-import org.json.JSONObject
 
 class NotificationsService : Service() {
     private var channelRelaysId = "RelaysConnections"
@@ -313,22 +311,13 @@ class NotificationsService : Service() {
                     .filter { it.size > 1 && (it[0] == "relay" || it[0] == "r") }
                     .forEach {
                         var read = true
-                        if (event.kind == 10002) {
-                            try {
-                                val relaysConfig = JSONObject(event.content)
-                                val config = relaysConfig.getJSONObject(it[1])
-                                read = config.getBoolean("read")
-                            } catch (_: JSONException) {
-                                Log.d(
-                                    "Pokey",
-                                    "Public inbox relays not configured",
-                                )
-                            }
+                        var write = true
+                        if (event.kind == 10002 && it.size > 2) {
+                            read = it[2] == "read"
+                            write = it[2] == "write"
                         }
-                        if (read) {
-                            val entity = RelayEntity(id = 0, url = it[1], kind = event.kind, createdAt = event.createdAt)
-                            dao.insertRelay(entity)
-                        }
+                        val entity = RelayEntity(id = 0, url = it[1], kind = event.kind, createdAt = event.createdAt, read = read, write = write)
+                        dao.insertRelay(entity)
                     }
 
                 startSubscription()
@@ -453,9 +442,9 @@ class NotificationsService : Service() {
 
     private fun connectRelays() {
         val dao = AppDatabase.getDatabase(this@NotificationsService, Pokey.getInstance().getHexKey()).applicationDao()
-        var relays = dao.getRelays()
+        var relays = dao.getReadRelays()
         if (relays.isEmpty()) {
-            relays = defaultRelayUrls.map { RelayEntity(id = 0, url = it, kind = 0, createdAt = 0) }
+            relays = defaultRelayUrls.map { RelayEntity(id = 0, url = it, kind = 0, createdAt = 0, read = true, write = true) }
         }
 
         relays.forEach {
