@@ -19,8 +19,8 @@ android {
         applicationId = "com.koalasat.pokey"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "v0.0.3-alpha"
+        versionCode = 4
+        versionName = "v0.0.4-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
