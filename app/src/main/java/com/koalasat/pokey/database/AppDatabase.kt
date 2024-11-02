@@ -6,15 +6,25 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.vitorpamplona.ammolite.relays.COMMON_FEED_TYPES
 import com.vitorpamplona.ammolite.relays.RelaySetupInfo
+
+val MIGRATION_5_6 =
+    object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `relay` ADD COLUMN `read` BOOLEAN NOT NULL DEFAULT TRUE")
+            db.execSQL("ALTER TABLE `relay` ADD COLUMN `write` BOOLEAN NOT NULL DEFAULT TRUE")
+        }
+    }
 
 @Database(
     entities = [
         NotificationEntity::class,
         RelayEntity::class,
     ],
-    version = 5,
+    version = 6,
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -32,6 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
                         AppDatabase::class.java,
                         "pokey_db_$pubKey",
                     )
+                        .addMigrations(MIGRATION_5_6)
                         .build()
                 instance
             }
