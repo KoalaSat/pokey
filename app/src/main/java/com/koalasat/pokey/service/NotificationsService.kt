@@ -228,7 +228,7 @@ class NotificationsService : Service() {
                 TypedFilter(
                     types = COMMON_FEED_TYPES,
                     filter = SincePerRelayFilter(
-                        kinds = listOf(9735),
+                        kinds = listOf(1, 3, 4, 6, 7, 1059, 9735),
                         tags = mapOf("p" to listOf(hexKey)),
                         since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification) },
                     ),
