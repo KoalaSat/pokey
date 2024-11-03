@@ -35,4 +35,5 @@
     <string name="active_mentions">New mentions</string>
     <string name="active_reposts">New reposts</string>
     <string name="active_follows">New follows</string>
+    <string name="broadcast">Broadcast to other apps</string>
 </resources>

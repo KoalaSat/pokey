@@ -25,6 +25,14 @@ class NotificationsFragment : Fragment() {
         _binding = FragmentNotificationsBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
+        viewModel.broadcast.value.apply { EncryptedStorage.broadcast.value }
+        binding.broadcast.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.updateBroadcast(isChecked)
+        }
+        viewModel.broadcast.observe(viewLifecycleOwner) { value ->
+            binding.broadcast.isChecked = value
+        }
+
         viewModel.newReplies.value.apply { EncryptedStorage.notifyReplies.value }
         binding.newReplies.setOnCheckedChangeListener { _, isChecked ->
             viewModel.updateNotifyReplies(isChecked)

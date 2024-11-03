@@ -94,9 +94,12 @@ class NotificationsService : Service() {
 
                     createNoteNotification(event)
 
-                    val intent = Intent(broadcastIntentName)
-                    intent.putExtra("EVENT", event.toJson())
-                    sendBroadcast(intent)
+                    if (EncryptedStorage.broadcast.value == true) {
+                        val intent = Intent(broadcastIntentName)
+                        intent.putExtra("EVENT", event.toJson())
+                        sendBroadcast(intent)
+                        Log.d("Pokey", "Relay Event: ${relay.url} - $subscriptionId - Broadcast")
+                    }
                 }
             }
 
