@@ -187,11 +187,7 @@ class NotificationsService : Service() {
         Log.d("Pokey", "Starting foreground service...")
         RelayPool.getAll().forEach { RelayPool.removeRelay(it) }
         startForeground(1, createNotification())
-        CoroutineScope(Dispatchers.IO).launch {
-            connectRelays()
-            startSubscription()
-            keepAlive()
-        }
+        keepAlive()
 
         val connectivityManager =
             (getSystemService(ConnectivityManager::class.java) as ConnectivityManager)
@@ -277,6 +273,7 @@ class NotificationsService : Service() {
                 override fun run() {
                     if (RelayPool.getAll().isEmpty()) {
                         connectRelays()
+                        startSubscription()
                     }
                     RelayPool.getAll().forEach {
                         if (!it.isConnected()) {
@@ -289,7 +286,7 @@ class NotificationsService : Service() {
                     }
                 }
             },
-            0,
+            3000,
             61000,
         )
     }
