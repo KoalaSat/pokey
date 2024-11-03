@@ -21,6 +21,13 @@
         app:layout_constraintVertical_bias="0.5">
 
         <Switch
+            android:id="@+id/broadcast"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="@string/broadcast" />
+
+        <Switch
             android:id="@+id/newReplies"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

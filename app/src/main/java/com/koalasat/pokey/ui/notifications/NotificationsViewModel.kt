@@ -1,12 +1,14 @@
 package com.koalasat.pokey.ui.notifications
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.koalasat.pokey.models.EncryptedStorage
 
 class NotificationsViewModel : ViewModel() {
+
+    private val _broadcast = MutableLiveData<Boolean>().apply { value = EncryptedStorage.broadcast.value }
+    val broadcast: LiveData<Boolean> = _broadcast
 
     private val _newReplies = MutableLiveData<Boolean>().apply { value = EncryptedStorage.notifyReplies.value }
     val newReplies: LiveData<Boolean> = _newReplies
@@ -33,10 +35,12 @@ class NotificationsViewModel : ViewModel() {
     val newFollows: LiveData<Boolean> = _newFollows
 
     init {
+        EncryptedStorage.broadcast.observeForever { value ->
+            _broadcast.value = value
+        }
         EncryptedStorage.notifyReplies.observeForever { value ->
             _newReplies.value = value
         }
-        Log.d("Pokey", "_newZaps.value" + _newZaps.value)
         EncryptedStorage.notifyZaps.observeForever { value ->
             _newZaps.value = value
         }
@@ -58,6 +62,11 @@ class NotificationsViewModel : ViewModel() {
         EncryptedStorage.notifyFollows.observeForever { value ->
             _newFollows.value = value
         }
+    }
+
+    fun updateBroadcast(value: Boolean) {
+        _broadcast.value = value
+        EncryptedStorage.updateBroadcast(value)
     }
 
     fun updateNotifyReplies(value: Boolean) {

@@ -9,6 +9,7 @@ import androidx.security.crypto.MasterKey
 
 object PrefKeys {
     const val NOSTR_PUBKEY = "nostr_pubkey"
+    const val NOSTR_BROADCAST = "broadcast"
     const val NOTIFY_REPLIES = "notify_replies"
     const val NOTIFY_PRIVATE = "notify_private"
     const val NOTIFY_ZAPS = "notify_zaps"
@@ -19,6 +20,7 @@ object PrefKeys {
     const val NOTIFY_FOLLOWS = "notify_follows"
 }
 object DefaultKeys {
+    const val BROADCAST = true
     const val NOTIFY_REPLIES = true
     const val NOTIFY_REACTIONS = true
     const val NOTIFY_PRIVATE = true
@@ -37,6 +39,8 @@ object EncryptedStorage {
     private val _pubKey = MutableLiveData<String>()
     val pubKey: LiveData<String> get() = _pubKey
 
+    private val _broadcast = MutableLiveData<Boolean>().apply { DefaultKeys.BROADCAST }
+    val broadcast: LiveData<Boolean> get() = _broadcast
     private val _notifyReplies = MutableLiveData<Boolean>().apply { DefaultKeys.NOTIFY_REPLIES }
     val notifyReplies: LiveData<Boolean> get() = _notifyReplies
     private val _notifyReactions = MutableLiveData<Boolean>().apply { DefaultKeys.NOTIFY_REACTIONS }
@@ -69,6 +73,7 @@ object EncryptedStorage {
         ) as EncryptedSharedPreferences
 
         _pubKey.value = sharedPreferences.getString(PrefKeys.NOSTR_PUBKEY, "")
+        _broadcast.value = sharedPreferences.getBoolean(PrefKeys.NOSTR_BROADCAST, DefaultKeys.BROADCAST)
         _notifyReplies.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_REPLIES, DefaultKeys.NOTIFY_REPLIES)
         _notifyReactions.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_REACTIONS, DefaultKeys.NOTIFY_REACTIONS)
         _notifyPrivate.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_PRIVATE, DefaultKeys.NOTIFY_PRIVATE)
@@ -82,6 +87,11 @@ object EncryptedStorage {
     fun updatePubKey(newValue: String) {
         sharedPreferences.edit().putString(PrefKeys.NOSTR_PUBKEY, newValue).apply()
         _pubKey.value = newValue
+    }
+
+    fun updateBroadcast(newValue: Boolean) {
+        sharedPreferences.edit().putBoolean(PrefKeys.NOSTR_BROADCAST, newValue).apply()
+        _broadcast.value = newValue
     }
 
     fun updateNotifyReplies(newValue: Boolean) {
