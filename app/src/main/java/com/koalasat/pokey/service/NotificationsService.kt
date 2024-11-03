@@ -43,6 +43,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONException
+import org.json.JSONObject
 
 class NotificationsService : Service() {
     private var broadcastIntentName = "com.shared.NOSTR"
@@ -404,6 +406,19 @@ class NotificationsService : Service() {
                         val sats = LnInvoiceUtil.getAmountInSats(bolt11).toInt()
                         text = "⚡ $sats Sats"
                     }
+                    try {
+                        val description = event.firstTag("description")?.let { JSONObject(it) }
+                        if (description != null) {
+                            val tags = description.getJSONArray("tags")
+                            val eTag = tags.getJSONArray(0)
+                            nip32Bech32 = Hex.decode(eTag.getString(1)).toNote()
+
+                            val content = description.getString("content")
+                            if (content.isNotEmpty()) text = "$text: $content"
+                        }
+                    } catch (e: JSONException) {
+                        Log.d("Pokey", "Invalid Zap JSON")
+                    }
                 }
                 3 -> {
                     if (!EncryptedStorage.notifyFollows.value!!) return@launch
@@ -440,7 +455,6 @@ class NotificationsService : Service() {
             )
                 .setContentTitle(title)
                 .setContentText(text)
-                .setWhen(event.createdAt)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
