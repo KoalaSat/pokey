@@ -296,7 +296,7 @@ class NotificationsService : Service() {
         val channelRelays = NotificationChannel(channelRelaysId, getString(R.string.relays_connection), NotificationManager.IMPORTANCE_DEFAULT)
         channelRelays.setSound(null, null)
 
-        val channelNotification = NotificationChannel(channelNotificationsId, getString(R.string.notifications), NotificationManager.IMPORTANCE_HIGH)
+        val channelNotification = NotificationChannel(channelNotificationsId, getString(R.string.configuration), NotificationManager.IMPORTANCE_HIGH)
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         notificationManager.createNotificationChannel(channelRelays)
@@ -335,6 +335,12 @@ class NotificationsService : Service() {
 
                 connectRelays()
                 startSubscription()
+            }
+
+            if (event.kind == 10050) {
+                Pokey.updateLoadingPrivateRelays(false)
+            } else {
+                Pokey.updateLoadingPublicRelays(false)
             }
         }
     }

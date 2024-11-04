@@ -1,12 +1,11 @@
-package com.koalasat.pokey.ui.notifications
+package com.koalasat.pokey.ui.configuration
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.koalasat.pokey.models.EncryptedStorage
 
-class NotificationsViewModel : ViewModel() {
-
+class ConfigurationViewModel : ViewModel() {
     private val _broadcast = MutableLiveData<Boolean>().apply { value = EncryptedStorage.broadcast.value }
     val broadcast: LiveData<Boolean> = _broadcast
 

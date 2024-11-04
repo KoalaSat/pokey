@@ -4,12 +4,12 @@
     <string name="app_name">Pokey</string>
     <string name="title_home">Home</string>
     <string name="title_relays">Relays</string>
-    <string name="title_notifications">Notifications</string>
+    <string name="title_configuration">Configuration</string>
     <string name="pokey_is_running_in_background">Pokey is running in background</string>
     <string name="amber_not_found">Amber not installed</string>
     <string name="inbox_relays_error">Your DM inbox relays are not configured</string>
     <string name="relays_connection">Relays connection</string>
-    <string name="notifications">Notifications</string>
+    <string name="configuration">Configuration</string>
     <string name="new_mention">New mention</string>
     <string name="new_reply">New reply</string>
     <string name="new_repost">New repost</string>
@@ -36,4 +36,13 @@
     <string name="active_reposts">New reposts</string>
     <string name="active_follows">New follows</string>
     <string name="broadcast">Broadcast to other apps</string>
+    <string name="public_inbox">Public inbox relays</string>
+    <string name="private_inbox">Private inbox relays</string>
+    <string name="publish">Publish</string>
+    <string name="add">Add</string>
+    <string name="reload">Reload</string>
+    <string name="config_broadcast">Broadcast</string>
+    <string name="config_notifications">Notifications</string>
+    <string name="add_relay">Add relay</string>
+    <string name="invalid_uri">Invalid URI</string>
 </resources>

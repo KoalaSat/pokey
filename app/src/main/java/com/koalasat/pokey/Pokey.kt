@@ -68,6 +68,10 @@ class Pokey : Application() {
     companion object {
         private val _isEnabled = MutableLiveData(false)
         val isEnabled: LiveData<Boolean> get() = _isEnabled
+        private val _loadingPublicRelays = MutableLiveData(false)
+        val loadingPublicRelays: LiveData<Boolean> get() = _loadingPublicRelays
+        private val _loadingPrivateRelays = MutableLiveData(false)
+        val loadingPrivateRelays: LiveData<Boolean> get() = _loadingPrivateRelays
 
         @Volatile
         private var instance: Pokey? = null
@@ -79,6 +83,14 @@ class Pokey : Application() {
 
         fun updateIsEnabled(value: Boolean) {
             _isEnabled.value = value
+        }
+
+        fun updateLoadingPublicRelays(value: Boolean) {
+            _loadingPublicRelays.postValue(value)
+        }
+
+        fun updateLoadingPrivateRelays(value: Boolean) {
+            _loadingPrivateRelays.postValue(value)
         }
 
         fun isForegroundServiceEnabled(context: Context): Boolean {
