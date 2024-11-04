@@ -1,4 +1,4 @@
-package com.koalasat.pokey.ui.notifications
+package com.koalasat.pokey.ui.configuration
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -9,7 +9,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.koalasat.pokey.databinding.FragmentNotificationsBinding
 import com.koalasat.pokey.models.EncryptedStorage
 
-class NotificationsFragment : Fragment() {
+class ConfigurationFragment : Fragment() {
 
     private var _binding: FragmentNotificationsBinding? = null
     private val binding get() = _binding!!
@@ -20,7 +20,7 @@ class NotificationsFragment : Fragment() {
         savedInstanceState: Bundle?,
     ): View {
         val viewModel =
-            ViewModelProvider(this).get(NotificationsViewModel::class.java)
+            ViewModelProvider(this).get(ConfigurationViewModel::class.java)
 
         _binding = FragmentNotificationsBinding.inflate(inflater, container, false)
         val root: View = binding.root

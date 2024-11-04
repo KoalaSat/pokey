@@ -14,8 +14,8 @@
             android:id="@+id/action_navigation_home_to_navigation_relays"
             app:destination="@id/navigation_relays" />
         <action
-            android:id="@+id/action_navigation_home_to_navigation_notifications"
-            app:destination="@id/navigation_notifications" />
+            android:id="@+id/action_navigation_home_to_navigation_configuration"
+            app:destination="@id/navigation_configuration" />
     </fragment>
 
     <fragment
@@ -25,8 +25,8 @@
         tools:layout="@layout/fragment_relays" />
 
     <fragment
-        android:id="@+id/navigation_notifications"
-        android:name="com.koalasat.pokey.ui.notifications.NotificationsFragment"
-        android:label="@string/title_notifications"
-        tools:layout="@layout/fragment_notifications" />
+        android:id="@+id/navigation_configuration"
+        android:name="com.koalasat.pokey.ui.configuration.ConfigurationFragment"
+        android:label="@string/title_configuration"
+        tools:layout="@layout/fragment_configuration" />
 </navigation>

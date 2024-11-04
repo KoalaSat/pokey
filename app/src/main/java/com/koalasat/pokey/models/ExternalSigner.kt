@@ -19,7 +19,7 @@ import kotlin.coroutines.cancellation.CancellationException
 
 object ExternalSigner {
     private lateinit var nostrSignerLauncher: ActivityResultLauncher<Intent>
-    private var externalSignerLauncher: ExternalSignerLauncher = ExternalSignerLauncher("", signerPackageName = "")
+    private lateinit var externalSignerLauncher: ExternalSignerLauncher
 
     fun init(activity: AppCompatActivity) {
         nostrSignerLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -30,17 +30,8 @@ object ExternalSigner {
                 result.data?.let { externalSignerLauncher.newResult(it) }
             }
         }
-        externalSignerLauncher.registerLauncher(
-            launcher = {
-                try {
-                    nostrSignerLauncher.launch(it) // This can remain if you still need to launch it
-                } catch (e: Exception) {
-                    if (e is CancellationException) throw e
-                    Log.e("Pokey", "Error opening Signer app", e)
-                }
-            },
-            contentResolver = { Pokey.getInstance().contentResolverFn() },
-        )
+
+        startLauncher()
     }
 
     fun savePubKey() {
@@ -52,7 +43,10 @@ object ExternalSigner {
         ) { result ->
             val split = result.split("-")
             val pubkey = split.first()
-            if (split.first().isNotEmpty()) EncryptedStorage.updatePubKey(pubkey)
+            if (split.first().isNotEmpty()) {
+                EncryptedStorage.updatePubKey(pubkey)
+                startLauncher()
+            }
         }
     }
 
@@ -80,6 +74,23 @@ object ExternalSigner {
         externalSignerLauncher.openSigner(
             event,
             onReady,
+        )
+    }
+
+    private fun startLauncher() {
+        var pubKey = EncryptedStorage.pubKey.value
+        if (pubKey == null) pubKey = ""
+        externalSignerLauncher = ExternalSignerLauncher(pubKey, signerPackageName = "")
+        externalSignerLauncher.registerLauncher(
+            launcher = {
+                try {
+                    nostrSignerLauncher.launch(it)
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    Log.e("Pokey", "Error opening Signer app", e)
+                }
+            },
+            contentResolver = { Pokey.getInstance().contentResolverFn() },
         )
     }
 }
