@@ -212,14 +212,14 @@ class RelaysFragment : Fragment() {
                 val relayList = withContext(Dispatchers.IO) { dao.getRelaysByKind(kind) }
                 if (relayList.size > 2) {
                     val builder = AlertDialog.Builder(context)
-                    builder.setTitle("Inbox relays")
-                    builder.setMessage("The recommended size for an inbox list is 2-3 relays, are you sure you want to proceed?")
+                    builder.setTitle(R.string.recommend_relay_title)
+                    builder.setMessage(R.string.recommend_relay_size)
 
-                    builder.setPositiveButton("Yes") { dialog: DialogInterface, which: Int ->
+                    builder.setPositiveButton(R.string.yes) { dialog: DialogInterface, which: Int ->
                         confirmation()
                     }
 
-                    builder.setNegativeButton("No") { dialog: DialogInterface, which: Int ->
+                    builder.setNegativeButton(R.string.no) { dialog: DialogInterface, which: Int ->
                         dialog.dismiss()
                     }
 
