@@ -45,4 +45,8 @@
     <string name="config_notifications">Notifications</string>
     <string name="add_relay">Add relay</string>
     <string name="invalid_uri">Invalid URI</string>
+    <string name="recommend_relay_size">The recommended size for an inbox list is 2-3 relays, are you sure you want to proceed?</string>
+    <string name="recommend_relay_title">Relay inbox</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
 </resources>
