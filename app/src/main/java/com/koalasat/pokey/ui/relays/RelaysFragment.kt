@@ -1,5 +1,7 @@
 package com.koalasat.pokey.ui.relays
 
+import android.app.AlertDialog
+import android.content.DialogInterface
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -70,10 +72,12 @@ class RelaysFragment : Fragment() {
         })
         binding.addPublicRelay.setOnClickListener {
             if (relaysViewModel.validationResultPublicRelay.value == true) {
-                binding.addPublicRelayUrl.error = null
-                insertRelay(relaysViewModel.newPublicRelay.value!!, 10002)
-                binding.addPublicRelayUrl.setText("")
-                publicRelaysView.adapter?.notifyDataSetChanged()
+                showRelayDialog(publicRelaysKind) {
+                    binding.addPublicRelayUrl.error = null
+                    insertRelay(relaysViewModel.newPublicRelay.value!!, 10002)
+                    binding.addPublicRelayUrl.setText("")
+                    publicRelaysView.adapter?.notifyDataSetChanged()
+                }
             } else {
                 binding.addPublicRelayUrl.error = getString(R.string.invalid_uri)
             }
@@ -103,11 +107,13 @@ class RelaysFragment : Fragment() {
         })
         binding.addPrivateRelay.setOnClickListener {
             if (relaysViewModel.validationResultPrivateRelay.value == true) {
-                binding.addPrivateRelayUrl.error = null
-                relaysViewModel.newPrivateRelay.value?.let { it1 -> Log.d("Pokey", it1) }
-                insertRelay(relaysViewModel.newPrivateRelay.value!!, 10050)
-                binding.addPrivateRelayUrl.setText("")
-                privateRelaysView.adapter?.notifyDataSetChanged()
+                showRelayDialog(privateRelaysKind) {
+                    binding.addPrivateRelayUrl.error = null
+                    relaysViewModel.newPrivateRelay.value?.let { it1 -> Log.d("Pokey", it1) }
+                    insertRelay(relaysViewModel.newPrivateRelay.value!!, 10050)
+                    binding.addPrivateRelayUrl.setText("")
+                    privateRelaysView.adapter?.notifyDataSetChanged()
+                }
             } else {
                 binding.addPrivateRelayUrl.error = getString(R.string.invalid_uri)
             }
@@ -194,6 +200,34 @@ class RelaysFragment : Fragment() {
                 privateList = withContext(Dispatchers.IO) { dao.getRelaysByKind(privateRelaysKind) }
                 privateRelayAdapter = RelayListAdapter(privateList.filter { it.read == 1 }.toMutableList())
                 privateRelaysView.adapter = privateRelayAdapter
+            }
+        }
+    }
+
+    private fun showRelayDialog(kind: Int, confirmation: () -> Unit) {
+        lifecycleScope.launch {
+            val hexKey = Pokey.getInstance().getHexKey()
+            val dao = context?.let { AppDatabase.getDatabase(it, hexKey).applicationDao() }
+            if (dao != null) {
+                val relayList = withContext(Dispatchers.IO) { dao.getRelaysByKind(kind) }
+                if (relayList.size > 2) {
+                    val builder = AlertDialog.Builder(context)
+                    builder.setTitle("Inbox relays")
+                    builder.setMessage("The recommended size for an inbox list is 2-3 relays, are you sure you want to proceed?")
+
+                    builder.setPositiveButton("Yes") { dialog: DialogInterface, which: Int ->
+                        confirmation()
+                    }
+
+                    builder.setNegativeButton("No") { dialog: DialogInterface, which: Int ->
+                        dialog.dismiss()
+                    }
+
+                    val dialog: AlertDialog = builder.create()
+                    dialog.show()
+                } else {
+                    confirmation()
+                }
             }
         }
     }
