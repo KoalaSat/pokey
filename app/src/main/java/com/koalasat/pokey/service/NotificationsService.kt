@@ -64,7 +64,9 @@ class NotificationsService : Service() {
             override fun onAuth(relay: Relay, challenge: String) {
                 Log.d("Pokey", "Relay on Auth: ${relay.url} : $challenge")
                 ExternalSigner.auth(relay.url, challenge) { result ->
-                    Log.d("Pokey", "Relay on Auth response: ${relay.url} : $result")
+                    Log.d("Pokey", "Relay on Auth response: ${relay.url} : ${result.toJson()}")
+                    relay.send(result)
+                    relay.renewFilters()
                 }
             }
 

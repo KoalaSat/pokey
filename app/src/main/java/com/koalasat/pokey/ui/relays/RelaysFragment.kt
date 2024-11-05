@@ -118,6 +118,8 @@ class RelaysFragment : Fragment() {
                 binding.addPrivateRelayUrl.error = getString(R.string.invalid_uri)
             }
         }
+        binding.publishPrivateRelay.setOnClickListener {
+        }
         binding.reloadPrivateRelay.setOnClickListener {
             Pokey.updateLoadingPrivateRelays(true)
             reconnectRelays(privateRelaysKind)
