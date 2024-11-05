@@ -50,7 +50,7 @@ object ExternalSigner {
         }
     }
 
-    fun auth(relayUrl: String, challenge: String, onReady: (String) -> Unit) {
+    fun auth(relayUrl: String, challenge: String, onReady: (Event) -> Unit) {
         val pubKey = Pokey.getInstance().getHexKey()
         val createdAt = TimeUtils.now()
         val kind = 22242
@@ -71,6 +71,24 @@ object ExternalSigner {
                 content = content,
                 sig = "",
             )
+        externalSignerLauncher.openSigner(
+            event,
+        ) {
+            onReady(
+                Event(
+                    id = id,
+                    pubKey = pubKey,
+                    createdAt = createdAt,
+                    kind = kind,
+                    tags = tags,
+                    content = content,
+                    sig = it,
+                ),
+            )
+        }
+    }
+
+    fun sign(event: Event, onReady: (String) -> Unit) {
         externalSignerLauncher.openSigner(
             event,
             onReady,

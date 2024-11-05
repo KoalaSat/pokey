@@ -1,11 +1,2 @@
-<?xml version="1.1" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-
-    <path
-        android:fillColor="#FFDC143C"
-    android:pathData="M3,6h18c0.553,0 1,0.447 1,1v2h-20V7C2,6.447 2.447,6 3,6zM4,10h16v12c0,1.104 -0.896,2 -2,2H6c-1.104,0 -2,-0.896 -2,-2V10zM10,12v8h4v-8h-4z"/>
-</vector>
+<!-- drawable/minus_circle.xml -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="24dp" android:width="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFDC143C" android:pathData="M17,13H7V11H17M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" /></vector>
