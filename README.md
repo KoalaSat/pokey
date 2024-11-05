@@ -32,7 +32,7 @@ What is Nostr: https://www.nostr.how
 - [x] Auth to relays
 - [ ] Use built-in Tor engine
 - [ ] Multi-account
-- [ ] InBox Relays management
+- [x] InBox Relays management
 - [x] Granulated notification settings
 - [ ] Mute button and mute lists
 
