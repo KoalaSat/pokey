@@ -64,7 +64,6 @@ class NotificationsService : Service() {
             override fun onAuth(relay: Relay, challenge: String) {
                 Log.d("Pokey", "Relay on Auth: ${relay.url} : $challenge")
                 ExternalSigner.auth(relay.url, challenge) { result ->
-                    Client.sendIfExists(result, relay)
                     Log.d("Pokey", "Relay on Auth response: ${relay.url} : $result")
                 }
             }
