@@ -34,6 +34,7 @@ What is Nostr: https://www.nostr.how
 - [ ] Multi-account
 - [ ] InBox Relays management
 - [x] Granulated notification settings
+- [ ] Mute button and mute lists
 
 # Receiving user's nostr events in your app
 
