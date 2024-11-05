@@ -18,7 +18,6 @@ object PrefKeys {
     const val NOTIFY_MENTIONS = "notify_mentions"
     const val NOTIFY_REPOSTS = "notify_reposts"
     const val NOTIFY_FOLLOWS = "notify_follows"
-    const val EXTERNAL_SIGNER = "external_signer"
 }
 object DefaultKeys {
     const val BROADCAST = true
@@ -30,7 +29,6 @@ object DefaultKeys {
     const val NOTIFY_MENTIONS = true
     const val NOTIFY_REPOSTS = true
     const val NOTIFY_FOLLOWS = true
-    const val EXTERNAL_SIGNER = "com.greenart7c3.nostrsigner"
 }
 
 object EncryptedStorage {
@@ -59,8 +57,6 @@ object EncryptedStorage {
     val notifyResposts: LiveData<Boolean> get() = _notifyResposts
     private val _notifyFollows = MutableLiveData<Boolean>().apply { DefaultKeys.NOTIFY_FOLLOWS }
     val notifyFollows: LiveData<Boolean> get() = _notifyFollows
-    private val _externalSigner = MutableLiveData<String>().apply { DefaultKeys.EXTERNAL_SIGNER }
-    val externalSigner: LiveData<String> get() = _externalSigner
 
     fun init(context: Context) {
         val masterKey: MasterKey =
@@ -86,12 +82,6 @@ object EncryptedStorage {
         _notifyMentions.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_MENTIONS, DefaultKeys.NOTIFY_MENTIONS)
         _notifyResposts.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_REPOSTS, DefaultKeys.NOTIFY_REPOSTS)
         _notifyFollows.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_FOLLOWS, DefaultKeys.NOTIFY_FOLLOWS)
-        _externalSigner.value = sharedPreferences.getString(PrefKeys.EXTERNAL_SIGNER, DefaultKeys.EXTERNAL_SIGNER) ?: DefaultKeys.EXTERNAL_SIGNER
-    }
-
-    fun updateExternalSigner(newValue: String) {
-        sharedPreferences.edit().putString(PrefKeys.EXTERNAL_SIGNER, newValue).apply()
-        _externalSigner.value = newValue
     }
 
     fun updatePubKey(newValue: String) {
