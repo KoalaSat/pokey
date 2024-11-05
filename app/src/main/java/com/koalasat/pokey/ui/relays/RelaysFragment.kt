@@ -20,9 +20,14 @@ import com.koalasat.pokey.R
 import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.database.RelayEntity
 import com.koalasat.pokey.databinding.FragmentRelaysBinding
+import com.koalasat.pokey.models.ExternalSigner
 import com.vitorpamplona.ammolite.relays.COMMON_FEED_TYPES
+import com.vitorpamplona.ammolite.relays.Client
 import com.vitorpamplona.ammolite.relays.Relay
 import com.vitorpamplona.ammolite.relays.RelayPool
+import com.vitorpamplona.quartz.encoders.toHexKey
+import com.vitorpamplona.quartz.events.Event
+import com.vitorpamplona.quartz.utils.TimeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -82,6 +87,9 @@ class RelaysFragment : Fragment() {
                 binding.addPublicRelayUrl.error = getString(R.string.invalid_uri)
             }
         }
+        binding.publishPublicRelay.setOnClickListener {
+            publishPublicRelays()
+        }
         binding.reloadPublicRelays.setOnClickListener {
             Pokey.updateLoadingPublicRelays(true)
             reconnectRelays(publicRelaysKind)
@@ -119,6 +127,7 @@ class RelaysFragment : Fragment() {
             }
         }
         binding.publishPrivateRelay.setOnClickListener {
+            publishPrivateRelays()
         }
         binding.reloadPrivateRelay.setOnClickListener {
             Pokey.updateLoadingPrivateRelays(true)
@@ -231,6 +240,78 @@ class RelaysFragment : Fragment() {
                     confirmation()
                 }
             }
+        }
+    }
+
+    private fun publishPrivateRelays() {
+        val pubKey = Pokey.getInstance().getHexKey()
+        val createdAt = TimeUtils.now()
+        val kind = 10050
+        val content = ""
+        val tags = privateList.map { arrayOf("relay", it.url) }.toTypedArray()
+        val id = Event.generateId(pubKey, createdAt, kind, tags, content).toHexKey()
+        val event =
+            Event(
+                id = id,
+                pubKey = pubKey,
+                createdAt = createdAt,
+                kind = kind,
+                tags = tags,
+                content = content,
+                sig = "",
+            )
+        ExternalSigner.sign(event) {
+            val signeEvent = Event(
+                id = id,
+                pubKey = pubKey,
+                createdAt = createdAt,
+                kind = kind,
+                tags = tags,
+                content = content,
+                sig = it,
+            )
+            Log.d("Pokey", "Relay private list : ${signeEvent.toJson()}")
+            Client.send(signeEvent)
+        }
+    }
+
+    private fun publishPublicRelays() {
+        val pubKey = Pokey.getInstance().getHexKey()
+        val createdAt = TimeUtils.now()
+        val kind = 10002
+        val content = ""
+        val tags = publicList.map {
+            var tag = arrayOf("r", it.url)
+            if (it.read == 1 && it.write == 0) {
+                tag += "read"
+            } else if (it.read == 0 && it.write == 1) {
+                tag += "write"
+            }
+            tag
+        }.toTypedArray()
+        val id = Event.generateId(pubKey, createdAt, kind, tags, content).toHexKey()
+        val event =
+            Event(
+                id = id,
+                pubKey = pubKey,
+                createdAt = createdAt,
+                kind = kind,
+                tags = tags,
+                content = content,
+                sig = "",
+            )
+        ExternalSigner.sign(event) {
+            val signeEvent = Event(
+                id = id,
+                pubKey = pubKey,
+                createdAt = createdAt,
+                kind = kind,
+                tags = tags,
+                content = content,
+                sig = it,
+            )
+            Log.d("Pokey", "Relay public list : ${signeEvent.toJson()}")
+            Client.send(signeEvent)
         }
     }
 }
