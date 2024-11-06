@@ -168,6 +168,8 @@ class NotificationsService : Service() {
         startForeground(1, createNotification())
         keepAlive()
 
+        startSubscription()
+
         val connectivityManager =
             (getSystemService(ConnectivityManager::class.java) as ConnectivityManager)
         connectivityManager.registerDefaultNetworkCallback(networkCallback)
@@ -213,7 +215,7 @@ class NotificationsService : Service() {
                     NostrClient.checkRelaysHealth(this@NotificationsService)
                 }
             },
-            3000,
+            5000,
             61000,
         )
     }

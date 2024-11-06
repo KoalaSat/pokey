@@ -213,7 +213,6 @@ object NostrClient {
     private fun getInboxLists(context: Context) {
         val hexKey = Pokey.getInstance().getHexKey()
         if (hexKey.isEmpty()) return
-        Log.d("Pokey", "getInboxLists")
 
         Client.sendFilterAndStopOnFirstResponse(
             subscriptionReadId,
@@ -267,7 +266,6 @@ object NostrClient {
     }
 
     private fun manageInboxRelays(context: Context, event: Event) {
-        Log.d("Pokey", event.kind.toString())
         val db = AppDatabase.getDatabase(context, Pokey.getInstance().getHexKey())
         val lastCreatedRelayAt = db.applicationDao().getLatestRelaysByKind(event.kind)
 
