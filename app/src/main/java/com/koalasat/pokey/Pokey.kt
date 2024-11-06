@@ -8,9 +8,8 @@ import android.content.SharedPreferences
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.koalasat.pokey.models.EncryptedStorage
+import com.koalasat.pokey.models.NostrClient
 import com.koalasat.pokey.service.NotificationsService
-import com.vitorpamplona.ammolite.relays.Client
-import com.vitorpamplona.ammolite.relays.RelayPool
 import com.vitorpamplona.quartz.encoders.Nip19Bech32
 import com.vitorpamplona.quartz.encoders.Nip19Bech32.uriToRoute
 import kotlinx.coroutines.CoroutineScope
@@ -27,7 +26,7 @@ class Pokey : Application() {
 
         updateIsEnabled(isForegroundServiceEnabled(this))
 
-        RelayPool.register(Client)
+        NostrClient.init()
     }
 
     override fun onTerminate() {
