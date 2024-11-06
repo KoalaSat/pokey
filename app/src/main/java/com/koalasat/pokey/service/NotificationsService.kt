@@ -17,24 +17,17 @@ import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.R
 import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.database.NotificationEntity
-import com.koalasat.pokey.database.RelayEntity
 import com.koalasat.pokey.models.EncryptedStorage
 import com.koalasat.pokey.models.ExternalSigner
-import com.vitorpamplona.ammolite.relays.COMMON_FEED_TYPES
+import com.koalasat.pokey.models.NostrClient
 import com.vitorpamplona.ammolite.relays.Client
-import com.vitorpamplona.ammolite.relays.EVENT_FINDER_TYPES
 import com.vitorpamplona.ammolite.relays.Relay
-import com.vitorpamplona.ammolite.relays.RelayPool
-import com.vitorpamplona.ammolite.relays.TypedFilter
-import com.vitorpamplona.ammolite.relays.filters.EOSETime
-import com.vitorpamplona.ammolite.relays.filters.SincePerRelayFilter
 import com.vitorpamplona.quartz.encoders.Hex
 import com.vitorpamplona.quartz.encoders.LnInvoiceUtil
 import com.vitorpamplona.quartz.encoders.toNote
 import com.vitorpamplona.quartz.encoders.toNpub
 import com.vitorpamplona.quartz.events.Event
 import com.vitorpamplona.quartz.events.EventInterface
-import java.time.Instant
 import java.util.Timer
 import java.util.TimerTask
 import java.util.concurrent.ConcurrentHashMap
@@ -51,15 +44,11 @@ class NotificationsService : Service() {
     private var channelRelaysId = "RelaysConnections"
     private var channelNotificationsId = "Notifications"
 
-    private var subscriptionNotificationId = "subscriptionNotificationId"
-    private var subscriptionInboxId = "inboxRelays"
-    private var subscriptionReadId = "readRelays"
-
     private val timer = Timer()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val processedEvents = ConcurrentHashMap<String, Boolean>()
 
-    private val clientListener =
+    private val clientNotificationListener =
         object : Client.Listener {
             override fun onAuth(relay: Relay, challenge: String) {
                 Log.d("Pokey", "Relay on Auth: ${relay.url} : $challenge")
@@ -134,7 +123,6 @@ class NotificationsService : Service() {
                     scope.launch(Dispatchers.IO) {
                         stopSubscription()
                         delay(1000)
-                        connectRelays()
                         startSubscription()
                     }
                 }
@@ -157,21 +145,11 @@ class NotificationsService : Service() {
                     if (Connectivity.updateNetworkCapabilities(networkCapabilities)) {
                         stopSubscription()
                         delay(1000)
-                        connectRelays()
                         startSubscription()
                     }
                 }
             }
         }
-
-    private var defaultRelayUrls = listOf(
-        "wss://relay.damus.io",
-        "wss://offchain.pub",
-        "wss://relay.snort.social",
-        "wss://nos.lol",
-        "wss://relay.nsec.app",
-        "wss://relay.0xchat.com",
-    )
 
     override fun onBind(intent: Intent): IBinder {
         return null!!
@@ -187,7 +165,6 @@ class NotificationsService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("Pokey", "Starting foreground service...")
-        RelayPool.getAll().forEach { RelayPool.removeRelay(it) }
         startForeground(1, createNotification())
         keepAlive()
 
@@ -200,7 +177,7 @@ class NotificationsService : Service() {
 
     override fun onDestroy() {
         timer.cancel()
-        RelayPool.getAll().forEach { RelayPool.removeRelay(it) }
+        stopSubscription()
 
         try {
             val connectivityManager =
@@ -217,75 +194,23 @@ class NotificationsService : Service() {
         val hexKey = Pokey.getInstance().getHexKey()
         if (hexKey.isEmpty()) return
 
-        if (!Client.isSubscribed(clientListener)) Client.subscribe(clientListener)
+        if (!Client.isSubscribed(clientNotificationListener)) Client.subscribe(clientNotificationListener)
 
-        val dao = AppDatabase.getDatabase(this@NotificationsService, hexKey).applicationDao()
-        var latestNotification = dao.getLatestNotification()
-        if (latestNotification == null) latestNotification = Instant.now().toEpochMilli() / 1000
-
-        Client.sendFilter(
-            subscriptionNotificationId,
-            listOf(
-                TypedFilter(
-                    types = COMMON_FEED_TYPES,
-                    filter = SincePerRelayFilter(
-                        kinds = listOf(1, 3, 4, 6, 7, 1059, 9735),
-                        tags = mapOf("p" to listOf(hexKey)),
-                        since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification) },
-                    ),
-                ),
-            ),
-        )
-        Client.sendFilterAndStopOnFirstResponse(
-            subscriptionReadId,
-            listOf(
-                TypedFilter(
-                    types = EVENT_FINDER_TYPES,
-                    filter = SincePerRelayFilter(
-                        kinds = listOf(10002),
-                        authors = listOf(hexKey),
-                    ),
-                ),
-            ),
-            onResponse = { manageInboxRelays(it) },
-        )
-        Client.sendFilterAndStopOnFirstResponse(
-            subscriptionInboxId,
-            listOf(
-                TypedFilter(
-                    types = EVENT_FINDER_TYPES,
-                    filter = SincePerRelayFilter(
-                        kinds = listOf(10050),
-                        authors = listOf(hexKey),
-                    ),
-                ),
-            ),
-            onResponse = { manageInboxRelays(it) },
-        )
+        CoroutineScope(Dispatchers.IO).launch {
+            NostrClient.start(this@NotificationsService)
+        }
     }
 
     private fun stopSubscription() {
-        Client.unsubscribe(clientListener)
-        RelayPool.unloadRelays()
+        Client.unsubscribe(clientNotificationListener)
+        NostrClient.stop()
     }
 
     private fun keepAlive() {
         timer.schedule(
             object : TimerTask() {
                 override fun run() {
-                    if (RelayPool.getAll().isEmpty()) {
-                        connectRelays()
-                        startSubscription()
-                    }
-                    RelayPool.getAll().forEach {
-                        if (!it.isConnected()) {
-                            Log.d(
-                                "Pokey",
-                                "Relay ${it.url} is not connected, reconnecting...",
-                            )
-                            it.connectAndSendFiltersIfDisconnected()
-                        }
-                    }
+                    NostrClient.checkRelaysHealth(this@NotificationsService)
                 }
             },
             3000,
@@ -314,48 +239,15 @@ class NotificationsService : Service() {
         return notificationBuilder.build()
     }
 
-    private fun manageInboxRelays(event: Event) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val dao = AppDatabase.getDatabase(this@NotificationsService, Pokey.getInstance().getHexKey()).applicationDao()
-            val lastCreatedRelayAt = dao.getLatestRelaysByKind(event.kind)
-
-            if (lastCreatedRelayAt == null || lastCreatedRelayAt < event.createdAt) {
-                RelayPool.unloadRelays()
-                dao.deleteRelaysByKind(event.kind)
-                event.tags
-                    .filter { it.size > 1 && (it[0] == "relay" || it[0] == "r") }
-                    .forEach {
-                        var read = 1
-                        var write = 1
-                        if (event.kind == 10002 && it.size > 2) {
-                            read = if (it[2] == "read") 1 else 0
-                            write = if (it[2] == "write") 1 else 0
-                        }
-                        val entity = RelayEntity(id = 0, url = it[1], kind = event.kind, createdAt = event.createdAt, read = read, write = write)
-                        dao.insertRelay(entity)
-                    }
-
-                connectRelays()
-                startSubscription()
-            }
-
-            if (event.kind == 10050) {
-                Pokey.updateLoadingPrivateRelays(false)
-            } else {
-                Pokey.updateLoadingPublicRelays(false)
-            }
-        }
-    }
-
     private fun createNoteNotification(event: Event) {
         CoroutineScope(Dispatchers.IO).launch {
-            val dao = AppDatabase.getDatabase(this@NotificationsService, Pokey.getInstance().getHexKey()).applicationDao()
-            val existsEvent = dao.existsNotification(event.id)
+            val db = AppDatabase.getDatabase(this@NotificationsService, Pokey.getInstance().getHexKey())
+            val existsEvent = db.applicationDao().existsNotification(event.id)
             if (existsEvent > 0) return@launch
 
             if (!event.hasVerifiedSignature()) return@launch
 
-            dao.insertNotification(NotificationEntity(0, event.id, event.createdAt))
+            db.applicationDao().insertNotification(NotificationEntity(0, event.id, event.createdAt))
 
             var title = ""
             var text = ""
@@ -469,28 +361,5 @@ class NotificationsService : Service() {
                 .setAutoCancel(true)
 
         notificationManager.notify(event.hashCode(), builder.build())
-    }
-
-    private fun connectRelays() {
-        val dao = AppDatabase.getDatabase(this@NotificationsService, Pokey.getInstance().getHexKey()).applicationDao()
-        var relays = dao.getReadRelays()
-        if (relays.isEmpty()) {
-            relays = defaultRelayUrls.map { RelayEntity(id = 0, url = it, kind = 0, createdAt = 0, read = 1, write = 1) }
-        }
-
-        relays.forEach {
-            Client.sendFilterOnlyIfDisconnected()
-            if (RelayPool.getRelays(it.url).isEmpty()) {
-                RelayPool.addRelay(
-                    Relay(
-                        it.url,
-                        read = true,
-                        write = false,
-                        forceProxy = false,
-                        activeTypes = COMMON_FEED_TYPES,
-                    ),
-                )
-            }
-        }
     }
 }

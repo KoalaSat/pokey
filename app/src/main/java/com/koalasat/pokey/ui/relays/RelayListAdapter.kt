@@ -7,12 +7,10 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.R
-import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.database.RelayEntity
+import com.koalasat.pokey.models.NostrClient
 import com.koalasat.pokey.utils.isDarkThemeEnabled
-import com.vitorpamplona.ammolite.relays.RelayPool
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -27,14 +25,7 @@ class RelayListAdapter(
         fun bind(relayEntity: RelayEntity, position: Int) {
             deleteIcon.setOnClickListener {
                 CoroutineScope(Dispatchers.IO).launch {
-                    val hexKey = Pokey.getInstance().getHexKey()
-                    val dao = AppDatabase.getDatabase(itemView.context, hexKey).applicationDao()
-                    dao.deleteRelayByUrl(relayEntity.url, relayEntity.kind)
-                    val relayStillExists = dao.getReadRelays().any { it.url == relayEntity.url }
-                    val relay = RelayPool.getRelay(relayEntity.url)
-                    if (!relayStillExists && relay != null) {
-                        RelayPool.removeRelay(relay)
-                    }
+                    NostrClient.deleteRelay(itemView.context, relayEntity.url, relayEntity.kind)
                     withContext(Dispatchers.Main) {
                         adapter.removeItem(position)
                     }
@@ -53,7 +44,7 @@ class RelayListAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val relayEntity = relayList[position]
         holder.textView.text = relayEntity.url
-        val relay = RelayPool.getRelay(relayEntity.url)
+        val relay = NostrClient.getRelay(relayEntity.url)
 
         val color = if (relay == null) {
             if (isDarkThemeEnabled(holder.textView.context)) R.color.white else R.color.black
