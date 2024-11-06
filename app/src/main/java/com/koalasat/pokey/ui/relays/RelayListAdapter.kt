@@ -11,6 +11,7 @@ import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.R
 import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.database.RelayEntity
+import com.koalasat.pokey.utils.isDarkThemeEnabled
 import com.vitorpamplona.ammolite.relays.RelayPool
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,7 +56,7 @@ class RelayListAdapter(
         val relay = RelayPool.getRelay(relayEntity.url)
 
         val color = if (relay == null) {
-            R.color.white
+            if (isDarkThemeEnabled(holder.textView.context)) R.color.white else R.color.black
         } else if (relay.isConnected()) {
             R.color.green
         } else {
