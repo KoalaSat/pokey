@@ -45,6 +45,9 @@ object ExternalSigner {
             val pubkey = split.first()
             if (split.first().isNotEmpty()) {
                 EncryptedStorage.updatePubKey(pubkey)
+                if (split.size > 1) {
+                    EncryptedStorage.updateExternalSigner(split[1])
+                }
                 startLauncher()
             }
         }
@@ -98,7 +101,10 @@ object ExternalSigner {
     private fun startLauncher() {
         var pubKey = EncryptedStorage.pubKey.value
         if (pubKey == null) pubKey = ""
-        externalSignerLauncher = ExternalSignerLauncher(pubKey, signerPackageName = "")
+        var externalSignerPackage = EncryptedStorage.externalSigner.value
+        if (externalSignerPackage == null) externalSignerPackage = ""
+        if (pubKey.isEmpty()) externalSignerPackage = ""
+        externalSignerLauncher = ExternalSignerLauncher(pubKey, signerPackageName = externalSignerPackage)
         externalSignerLauncher.registerLauncher(
             launcher = {
                 try {
