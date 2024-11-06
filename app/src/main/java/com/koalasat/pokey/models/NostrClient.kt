@@ -93,7 +93,8 @@ object NostrClient {
                         activeTypes = COMMON_FEED_TYPES,
                     ),
                 )
-                RelayPool.connectAndSendFiltersIfDisconnected()
+                getInboxLists(context)
+                subscribeToInbox(context)
             }
         }
     }
