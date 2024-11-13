@@ -20,6 +20,8 @@
     </a>
 </div>
 
+- Discussion: https://chachi.chat/groups.0xchat.com/7SbVsYrEQMtZAMIn
+
 # Getting Started
 
 What is Nostr: https://www.nostr.how
