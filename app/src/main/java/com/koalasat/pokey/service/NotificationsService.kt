@@ -55,7 +55,6 @@ class NotificationsService : Service() {
                 ExternalSigner.auth(relay.url, challenge) { result ->
                     Log.d("Pokey", "Relay on Auth response: ${relay.url} : ${result.toJson()}")
                     relay.send(result)
-                    relay.renewFilters()
                 }
             }
 

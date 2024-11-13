@@ -57,7 +57,7 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: ${{ github.ref }}
-          draft: false
+          draft: true
           prerelease: ${{ steps.regex-match.outputs.match != '' }}
       
       - name: Set asset_name
