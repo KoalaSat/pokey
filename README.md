@@ -40,7 +40,7 @@ What is Nostr: https://www.nostr.how
 - [ ] Last 20 notifications view
 - [ ] Custom emojis
 
-# Receiving user's nostr events in your app
+# Receiving user's inbox events on your app
 
 1. Register the intent filter in the `AndroidManifest.xml` file:
 ```xml
