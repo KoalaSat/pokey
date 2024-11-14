@@ -200,12 +200,15 @@ class NotificationsService : Service() {
     }
 
     private fun startSubscription() {
+        Log.d("Pokey", "startSubscription")
         val hexKey = Pokey.getInstance().getHexKey()
         if (hexKey.isEmpty()) return
 
+        Log.d("Pokey", "hexKey $hexKey")
         if (!Client.isSubscribed(clientNotificationListener)) Client.subscribe(clientNotificationListener)
 
         CoroutineScope(Dispatchers.IO).launch {
+            Log.d("Pokey", "NostrClient.start")
             NostrClient.start(this@NotificationsService)
         }
     }

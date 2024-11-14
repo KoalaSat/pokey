@@ -24,8 +24,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        EncryptedStorage.init(this)
-        ExternalSigner.init(this)
+        init()
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -72,5 +71,10 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(applicationContext, getString(R.string.permissions_required), Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    fun init() {
+        EncryptedStorage.init(this)
+        ExternalSigner.init(this)
     }
 }
