@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.koalasat.pokey.Pokey
+import com.koalasat.pokey.models.EncryptedStorage
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -38,6 +39,7 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             Log.d("BootReceiver", "Starting ConnectivityService ACTION_BOOT_COMPLETED")
             if (Pokey.isForegroundServiceEnabled(context)) {
+                EncryptedStorage.init(context)
                 context.startForegroundService(
                     Intent(
                         context,
