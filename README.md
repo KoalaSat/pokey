@@ -38,6 +38,7 @@ What is Nostr: https://www.nostr.how
 - [x] Granulated notification settings
 - [ ] Mute button and mute lists
 - [ ] Last 20 notifications view
+- [ ] Custom emojis
 
 # Receiving user's nostr events in your app
 
