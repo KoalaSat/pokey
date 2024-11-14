@@ -343,7 +343,7 @@ class NotificationsService : Service() {
             NostrClient.getNip05Content(event.pubKey, onResponse = {
                 try {
                     var authorName = it?.getString("name")
-                    if (authorName?.isNotEmpty() == true) {
+                    if (authorName?.isNotEmpty() == true && !title.contains(authorName)) {
                         title += " from $authorName"
                     }
                 } catch (e: JSONException) { }
