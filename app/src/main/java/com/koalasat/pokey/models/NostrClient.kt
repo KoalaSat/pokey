@@ -47,6 +47,7 @@ object NostrClient {
 
     fun checkRelaysHealth(context: Context) {
         if (RelayPool.getAll().isEmpty()) {
+            stop()
             start(context)
         }
         RelayPool.getAll().forEach {

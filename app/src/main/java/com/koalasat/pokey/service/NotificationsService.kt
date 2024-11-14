@@ -28,6 +28,7 @@ import com.vitorpamplona.quartz.encoders.toNote
 import com.vitorpamplona.quartz.encoders.toNpub
 import com.vitorpamplona.quartz.events.Event
 import com.vitorpamplona.quartz.events.EventInterface
+import com.vitorpamplona.quartz.utils.TimeUtils
 import java.util.Timer
 import java.util.TimerTask
 import java.util.concurrent.ConcurrentHashMap
@@ -47,14 +48,21 @@ class NotificationsService : Service() {
     private val timer = Timer()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val processedEvents = ConcurrentHashMap<String, Boolean>()
+    private val authRelays = ConcurrentHashMap<String, Long>()
 
     private val clientNotificationListener =
         object : Client.Listener {
             override fun onAuth(relay: Relay, challenge: String) {
                 Log.d("Pokey", "Relay on Auth: ${relay.url} : $challenge")
-                ExternalSigner.auth(relay.url, challenge) { result ->
-                    Log.d("Pokey", "Relay on Auth response: ${relay.url} : ${result.toJson()}")
-                    relay.send(result)
+                val currentTime = TimeUtils.now()
+                val fiveMinutesInMillis = 5 * 60 * 1000
+                val existingTimestamp = authRelays[relay.url]
+                if (existingTimestamp == null || (currentTime - existingTimestamp > fiveMinutesInMillis)) {
+                    ExternalSigner.auth(relay.url, challenge) { result ->
+                        Log.d("Pokey", "Relay on Auth response: ${relay.url} : ${result.toJson()}")
+                        relay.send(result)
+                        authRelays.putIfAbsent(relay.url, TimeUtils.now())
+                    }
                 }
             }
 
