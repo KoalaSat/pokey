@@ -340,13 +340,21 @@ class NotificationsService : Service() {
 
             if (title.isEmpty()) return@launch
 
-            displayNoteNotification(title, text, nip32Bech32, event)
+            NostrClient.getNip05Content(event.pubKey, onResponse = {
+                try {
+                    var authorName = it?.getString("name")
+                    if (authorName?.isNotEmpty() == true) {
+                        title += " from $authorName"
+                    }
+                } catch (e: JSONException) { }
+                displayNoteNotification(title, text, nip32Bech32, event)
+            })
         }
     }
 
-    private fun displayNoteNotification(title: String, text: String, nip32Bech32: String, event: Event) {
+    private fun displayNoteNotification(title: String, text: String, authorBech32: String, event: Event) {
         val deepLinkIntent = Intent(Intent.ACTION_VIEW).apply {
-            data = Uri.parse("nostr:$nip32Bech32")
+            data = Uri.parse("nostr:$authorBech32")
         }
         val pendingIntent = PendingIntent.getActivity(
             this@NotificationsService,

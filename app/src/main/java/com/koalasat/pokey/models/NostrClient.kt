@@ -1,6 +1,8 @@
 package com.koalasat.pokey.models
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.database.AppDatabase
@@ -17,11 +19,16 @@ import com.vitorpamplona.quartz.encoders.toHexKey
 import com.vitorpamplona.quartz.events.Event
 import com.vitorpamplona.quartz.utils.TimeUtils
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
+import org.json.JSONException
+import org.json.JSONObject
 
 object NostrClient {
     private var subscriptionNotificationId = "subscriptionNotificationId"
     private var subscriptionInboxId = "inboxRelays"
     private var subscriptionReadId = "readRelays"
+
+    private var usersNip05 = ConcurrentHashMap<String, JSONObject>()
 
     private var defaultRelayUrls = listOf(
         "wss://relay.damus.io",
@@ -208,6 +215,51 @@ object NostrClient {
             )
             Log.d("Pokey", "Relay public list : ${signeEvent.toJson()}")
             Client.send(signeEvent)
+        }
+    }
+
+    fun getNip05Content(hexPubKey: String, onResponse: (JSONObject?) -> Unit) {
+        if (usersNip05.containsKey(hexPubKey)) {
+            Log.d("Pokey", "Recovering NIP05")
+            onResponse(usersNip05.getValue(hexPubKey))
+        } else {
+            Log.d("Pokey", "Fetching NIP05")
+            val handler = Handler(Looper.getMainLooper())
+            val timeoutRunnable = Runnable {
+                Log.d("Pokey", "NIP05 not found")
+                onResponse(null)
+            }
+            handler.postDelayed(timeoutRunnable, 5000)
+
+            Client.sendFilterAndStopOnFirstResponse(
+                subscriptionReadId,
+                listOf(
+                    TypedFilter(
+                        types = EVENT_FINDER_TYPES,
+                        filter = SincePerRelayFilter(
+                            kinds = listOf(0),
+                            authors = listOf(hexPubKey),
+                        ),
+                    ),
+                ),
+                onResponse = { event ->
+                    if (event.pubKey == hexPubKey) {
+                        Log.d("Pokey", "NIP05 found")
+                        handler.removeCallbacks(timeoutRunnable)
+                        if (event.content.isNotEmpty()) {
+                            try {
+                                val content = JSONObject(event.content)
+                                usersNip05.put(event.pubKey, content)
+                                onResponse(content)
+                            } catch (e: JSONException) {
+                                Log.d("Pokey", "Invalid NIP05 JSON: $e")
+                                usersNip05.put(event.pubKey, JSONObject())
+                                onResponse(null)
+                            }
+                        }
+                    }
+                },
+            )
         }
     }
 
