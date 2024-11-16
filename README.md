@@ -40,6 +40,7 @@ What is Nostr: https://www.nostr.how
 - [ ] Last 20 notifications view
 - [ ] Custom emojis
 - [ ] Search term notification
+- [ ] New app version notification
 
 # Receiving user's inbox events on your app
 
