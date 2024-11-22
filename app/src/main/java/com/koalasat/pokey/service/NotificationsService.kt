@@ -369,9 +369,9 @@ class NotificationsService : Service() {
         val intentAction1 = Intent(this, NotificationReceiver::class.java).apply {
             action = "MUTE"
             putExtra("rootEventId", event.firstTaggedEvent())
-            putExtra("notificationId", event.hashCode())
+            putExtra("notificationId", event.id.hashCode())
         }
-        val pendingIntentMute = PendingIntent.getBroadcast(this, 0, intentAction1, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntentMute = PendingIntent.getBroadcast(this, event.id.hashCode(), intentAction1, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val builder: NotificationCompat.Builder =
             NotificationCompat.Builder(
                 applicationContext,
@@ -385,6 +385,7 @@ class NotificationsService : Service() {
                 .addAction(0, getString(R.string.mute_thread), pendingIntentMute)
                 .setAutoCancel(true)
 
-        notificationManager.notify(event.hashCode(), builder.build())
+        Log.d("Pokey", "notificationId ${event.id.hashCode()}")
+        notificationManager.notify(event.id.hashCode(), builder.build())
     }
 }

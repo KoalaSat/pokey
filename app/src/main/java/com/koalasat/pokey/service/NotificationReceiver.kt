@@ -35,6 +35,7 @@ class NotificationReceiver : BroadcastReceiver() {
                 }
             }
             val notificationId = intent.getIntExtra("notificationId", -1)
+            Log.d("Pokey", "notificationId $notificationId")
             if (notificationId != -1) {
                 val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                 notificationManager.cancel(notificationId)
