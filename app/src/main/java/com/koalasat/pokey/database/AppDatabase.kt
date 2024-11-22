@@ -42,7 +42,7 @@ val MIGRATION_6_7 =
         RelayEntity::class,
         MuteEntity::class,
     ],
-    version = 6,
+    version = 7,
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
