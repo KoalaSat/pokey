@@ -254,9 +254,10 @@ class NotificationsService : Service() {
             val existsEvent = db.applicationDao().existsNotification(event.id)
             if (existsEvent > 0) return@launch
 
-            if (!event.hasVerifiedSignature()) return@launch
-
             db.applicationDao().insertNotification(NotificationEntity(0, event.id, event.createdAt))
+
+            if (!event.hasVerifiedSignature()) return@launch
+            if (event.firstTaggedEvent()?.isNotEmpty() == true && db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString()) == 1) return@launch
 
             var title = ""
             var text = ""
@@ -365,6 +366,12 @@ class NotificationsService : Service() {
 
         val notificationManager =
             getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val intentAction1 = Intent(this, NotificationReceiver::class.java).apply {
+            action = "MUTE"
+            putExtra("rootEventId", event.firstTaggedEvent())
+            putExtra("notificationId", event.hashCode())
+        }
+        val pendingIntentMute = PendingIntent.getBroadcast(this, 0, intentAction1, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val builder: NotificationCompat.Builder =
             NotificationCompat.Builder(
                 applicationContext,
@@ -375,6 +382,7 @@ class NotificationsService : Service() {
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
+                .addAction(0, getString(R.string.mute_thread), pendingIntentMute)
                 .setAutoCancel(true)
 
         notificationManager.notify(event.hashCode(), builder.build())

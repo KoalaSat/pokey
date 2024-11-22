@@ -36,4 +36,16 @@ interface ApplicationDao {
 
     @Query("DELETE FROM relay where url = :url and kind = :kind")
     fun deleteRelayByUrl(url: String, kind: Int): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertMute(muteEntity: MuteEntity): Long?
+
+    @Query("SELECT EXISTS (SELECT 1 FROM mute WHERE entityId = :entityId)")
+    fun existsMuteEntity(entityId: String): Int
+
+    @Query("SELECT * FROM mute WHERE kind = :kind")
+    fun getMuteList(kind: Int): List<MuteEntity>
+
+    @Query("DELETE FROM mute where kind = :kind")
+    fun deleteMuteList(kind: Int): Int
 }
