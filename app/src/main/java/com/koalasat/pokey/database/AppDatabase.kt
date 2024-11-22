@@ -24,8 +24,8 @@ val MIGRATION_6_7 =
             db.execSQL(
                 "CREATE TABLE IF NOT EXISTS `mute` (\n" +
                     "    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,\n" +
-                    "    `kind` INT,\n" +
-                    "    `private` INT,\n" +
+                    "    `kind` INTEGER,\n" +
+                    "    `private` INTEGER,\n" +
                     "    `tagType` TEXT,\n" +
                     "    `entityId` TEXT\n" +
                     ");",
