@@ -24,10 +24,10 @@ val MIGRATION_6_7 =
             db.execSQL(
                 "CREATE TABLE IF NOT EXISTS `mute` (\n" +
                     "    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,\n" +
-                    "    `kind` INTEGER,\n" +
-                    "    `private` INTEGER,\n" +
-                    "    `tagType` TEXT,\n" +
-                    "    `entityId` TEXT\n" +
+                    "    `kind` INTEGER NOT NULL,\n" +
+                    "    `private` INTEGER NOT NULL,\n" +
+                    "    `tagType` TEXT NOT NULL,\n" +
+                    "    `entityId` TEXT NOT NULL\n" +
                     ");",
             )
             db.execSQL("CREATE INDEX IF NOT EXISTS `mute_by_entityId` ON `mute` (`entityId`)")
