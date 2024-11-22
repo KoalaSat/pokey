@@ -256,8 +256,8 @@ class NotificationsService : Service() {
 
             db.applicationDao().insertNotification(NotificationEntity(0, event.id, event.createdAt))
 
-            if (!event.hasVerifiedSignature()) return@launch
             if (event.firstTaggedEvent()?.isNotEmpty() == true && db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString()) == 1) return@launch
+            if (!event.hasVerifiedSignature()) return@launch
 
             var title = ""
             var text = ""
