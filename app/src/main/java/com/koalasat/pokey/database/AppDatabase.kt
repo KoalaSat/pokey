@@ -18,11 +18,29 @@ val MIGRATION_5_6 =
             db.execSQL("ALTER TABLE `relay` ADD COLUMN `write` INT NOT NULL DEFAULT TRUE")
         }
     }
+val MIGRATION_6_7 =
+    object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `mute` (\n" +
+                    "    `id` INT AUTO_INCREMENT PRIMARY KEY,\n" +
+                    "    `kind` INT,\n" +
+                    "    `private` INT,\n" +
+                    "    `tagType` VARCHAR(255),\n" +
+                    "    `entityId` VARCHAR(255)\n" +
+                    ");",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `mute_by_entityId` ON `mute` (`entityId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `notification_by_eventId` ON `notification` (`eventId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `relay_by_url` ON `relay` (`url`)")
+        }
+    }
 
 @Database(
     entities = [
         NotificationEntity::class,
         RelayEntity::class,
+        MuteEntity::class,
     ],
     version = 6,
 )
@@ -43,6 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
                         "pokey_db_$pubKey",
                     )
                         .addMigrations(MIGRATION_5_6)
+                        .addMigrations(MIGRATION_6_7)
                         .build()
                 instance
             }
