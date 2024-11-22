@@ -23,11 +23,11 @@ val MIGRATION_6_7 =
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL(
                 "CREATE TABLE IF NOT EXISTS `mute` (\n" +
-                    "    `id` INT AUTO_INCREMENT PRIMARY KEY,\n" +
+                    "    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,\n" +
                     "    `kind` INT,\n" +
                     "    `private` INT,\n" +
-                    "    `tagType` VARCHAR(255),\n" +
-                    "    `entityId` VARCHAR(255)\n" +
+                    "    `tagType` TEXT,\n" +
+                    "    `entityId` TEXT\n" +
                     ");",
             )
             db.execSQL("CREATE INDEX IF NOT EXISTS `mute_by_entityId` ON `mute` (`entityId`)")
