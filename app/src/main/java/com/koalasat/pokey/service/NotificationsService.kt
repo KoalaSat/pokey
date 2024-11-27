@@ -5,11 +5,15 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.koalasat.pokey.Connectivity
@@ -20,6 +24,8 @@ import com.koalasat.pokey.database.NotificationEntity
 import com.koalasat.pokey.models.EncryptedStorage
 import com.koalasat.pokey.models.ExternalSigner
 import com.koalasat.pokey.models.NostrClient
+import com.koalasat.pokey.utils.images.CircleTransform
+import com.squareup.picasso.Picasso
 import com.vitorpamplona.ammolite.relays.Client
 import com.vitorpamplona.ammolite.relays.Relay
 import com.vitorpamplona.quartz.encoders.Hex
@@ -250,7 +256,10 @@ class NotificationsService : Service() {
 
     private fun createNoteNotification(event: Event) {
         CoroutineScope(Dispatchers.IO).launch {
-            val db = AppDatabase.getDatabase(this@NotificationsService, Pokey.getInstance().getHexKey())
+            val userHexPub = Pokey.getInstance().getHexKey()
+            if (!event.taggedUsers().contains(userHexPub)) return@launch
+
+            val db = AppDatabase.getDatabase(this@NotificationsService, userHexPub)
             val existsEvent = db.applicationDao().existsNotification(event.id)
             if (existsEvent > 0) return@launch
 
@@ -263,6 +272,7 @@ class NotificationsService : Service() {
             var text = ""
             val pubKey = EncryptedStorage.pubKey
             var nip32Bech32 = ""
+            var avatar = ""
 
             when (event.kind) {
                 1 -> {
@@ -300,7 +310,7 @@ class NotificationsService : Service() {
 
                     title = getString(R.string.new_reaction)
                     text = if (event.content.isEmpty() || event.content == "+") {
-                        "❤\uFE0F"
+                        "♥\uFE0F"
                     } else {
                         event.content
                     }
@@ -347,13 +357,39 @@ class NotificationsService : Service() {
                     if (authorName?.isNotEmpty() == true && !title.contains(authorName)) {
                         title += " from $authorName"
                     }
+                    avatar = it?.getString("picture").toString()
                 } catch (e: JSONException) { }
-                displayNoteNotification(title, text, nip32Bech32, event)
+
+                if (avatar.isEmpty()) {
+                    displayNoteNotification(title, text, nip32Bech32, null, event)
+                } else {
+                    val handler = Handler(Looper.getMainLooper())
+                    handler.post {
+                        Picasso.get()
+                            .load(avatar)
+                            .resize(100, 100)
+                            .centerCrop()
+                            .transform(CircleTransform())
+                            .into(object : com.squareup.picasso.Target {
+                                override fun onBitmapLoaded(bitmap: Bitmap, from: Picasso.LoadedFrom) {
+                                    displayNoteNotification(title, text, nip32Bech32, bitmap, event)
+                                }
+
+                                override fun onBitmapFailed(e: Exception, errorDrawable: Drawable?) {
+                                    displayNoteNotification(title, text, nip32Bech32, null, event)
+                                }
+
+                                override fun onPrepareLoad(placeHolderDrawable: Drawable?) {
+                                    // Optional: Handle the loading state
+                                }
+                            })
+                    }
+                }
             })
         }
     }
 
-    private fun displayNoteNotification(title: String, text: String, authorBech32: String, event: Event) {
+    private fun displayNoteNotification(title: String, text: String, authorBech32: String, avatar: Bitmap?, event: Event) {
         val deepLinkIntent = Intent(Intent.ACTION_VIEW).apply {
             data = Uri.parse("nostr:$authorBech32")
         }
@@ -380,6 +416,7 @@ class NotificationsService : Service() {
                 .setContentTitle(title)
                 .setContentText(text)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setLargeIcon(avatar)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
                 .addAction(0, getString(R.string.mute_thread), pendingIntentMute)

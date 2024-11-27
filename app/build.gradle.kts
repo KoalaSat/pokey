@@ -131,6 +131,7 @@ dependencies {
     implementation(libs.ammolite) {
         exclude("net.java.dev.jna")
     }
+    implementation(libs.picasso)
     implementation(libs.jna) { artifact { type = "aar" } }
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
