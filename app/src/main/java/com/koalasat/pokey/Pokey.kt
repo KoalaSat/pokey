@@ -5,7 +5,6 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.koalasat.pokey.database.AppDatabase
@@ -33,8 +32,6 @@ class Pokey : Application() {
 
         updateIsEnabled(isForegroundServiceEnabled(this))
 
-        migrateUserToDB()
-
         NostrClient.init()
     }
 
@@ -44,6 +41,8 @@ class Pokey : Application() {
     }
 
     fun startService() {
+        createUser(this@Pokey)
+
         this.startForegroundService(
             Intent(
                 this,
@@ -52,36 +51,6 @@ class Pokey : Application() {
         )
 
         saveForegroundServicePreference(this@Pokey, true)
-
-        CoroutineScope(Dispatchers.IO).launch {
-            val hexKey = getHexKey()
-            val dao = AppDatabase.getDatabase(this@Pokey, hexKey).applicationDao()
-            var newUser = UserEntity(
-                id = 0,
-                hexPub = hexKey,
-                name = null,
-                avatar = null,
-                createdAt = null,
-            )
-            dao.insertUser(newUser)
-            Log.e("Pokey", newUser.toString())
-            getNip05Content(
-                hexKey,
-                onResponse = {
-                    try {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            newUser.name = it?.getString("name")
-                            newUser.avatar = it?.getString("picture")
-                            newUser.createdAt = it?.getLong("created_at")
-                            if (dao.updateUser(newUser) == 1 && newUser.avatar?.isNotEmpty() == true) {
-                                EncryptedStorage.updateAvatar(newUser.avatar.toString())
-                            }
-                        }
-                    } catch (e: JSONException) {
-                    }
-                },
-            )
-        }
     }
 
     fun stopService() {
@@ -144,18 +113,13 @@ class Pokey : Application() {
             editor.apply()
             updateIsEnabled(value)
         }
-    }
 
-    private fun migrateUserToDB() {
-        Log.e("Pokey", "migrateUserToDB")
-        CoroutineScope(Dispatchers.IO).launch {
-            if (EncryptedStorage.pubKey.value?.isNotEmpty() == true) {
-                Log.e("Pokey", "EncryptedStorage.pubKey.value")
-                val hexKey = getHexKey()
-                val dao = AppDatabase.getDatabase(this@Pokey, hexKey).applicationDao()
-                val existUser = dao.getUser(hexKey)
-                Log.e("Pokey", existUser.toString())
-                if (existUser == null) {
+        private fun createUser(context: Context) {
+            CoroutineScope(Dispatchers.IO).launch {
+                val hexKey = getInstance().getHexKey()
+                val dao = AppDatabase.getDatabase(context, hexKey).applicationDao()
+                val existingUser = dao.getUser(hexKey)
+                if (existingUser == null) {
                     var newUser = UserEntity(
                         id = 0,
                         hexPub = hexKey,
@@ -171,7 +135,6 @@ class Pokey : Application() {
                         notifyReposts = if (EncryptedStorage.notifyResposts.value == true) 1 else 0,
                     )
                     dao.insertUser(newUser)
-                    Log.e("Pokey", newUser.toString())
                     getNip05Content(
                         hexKey,
                         onResponse = {

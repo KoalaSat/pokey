@@ -15,24 +15,14 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action == Intent.ACTION_PACKAGE_REPLACED && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             if (intent.dataString?.contains("com.koalasat.pokey") == true && Pokey.isForegroundServiceEnabled(context)) {
                 Log.d("BootReceiver", "Starting ConnectivityService ACTION_PACKAGE_REPLACED")
-                context.startForegroundService(
-                    Intent(
-                        context,
-                        NotificationsService::class.java,
-                    ),
-                )
+                Pokey.getInstance().startService()
             }
         }
 
         if (intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
             Log.d("BootReceiver", "Starting ConnectivityService ACTION_MY_PACKAGE_REPLACED")
             if (Pokey.isForegroundServiceEnabled(context)) {
-                context.startForegroundService(
-                    Intent(
-                        context,
-                        NotificationsService::class.java,
-                    ),
-                )
+                Pokey.getInstance().startService()
             }
         }
 
@@ -40,12 +30,7 @@ class BootReceiver : BroadcastReceiver() {
             Log.d("BootReceiver", "Starting ConnectivityService ACTION_BOOT_COMPLETED")
             if (Pokey.isForegroundServiceEnabled(context)) {
                 EncryptedStorage.init(context)
-                context.startForegroundService(
-                    Intent(
-                        context,
-                        NotificationsService::class.java,
-                    ),
-                )
+                Pokey.getInstance().startService()
             }
         }
     }
