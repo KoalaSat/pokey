@@ -40,7 +40,6 @@ What is Nostr: https://www.nostr.how
 - [ ] Last 20 notifications view
 - [ ] Custom emojis
 - [ ] Search term notification
-- [ ] New app version notification
 
 # Receiving user's inbox events on your app
 
@@ -66,6 +65,16 @@ override fun onStop() {
 }
 
 ```
+
+# Sponsors
+
+<div align="center">
+    <a href="https://opensats.org" target="_blank">
+        <img src="./docs/opensats.webp" alt="OpenSats Logo" />
+        <p>
+        <span>OpenSats Initiative</span>
+    </a>
+</div>
 
 # Kudos
 

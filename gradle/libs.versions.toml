@@ -21,6 +21,7 @@ securityCryptoKtx = "1.1.0-alpha06"
 roomKtx = "2.6.1"
 ksp = "2.0.20-1.0.24"
 ktlint = "12.1.1"
+picasso = "2.8"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx" }
@@ -46,10 +47,11 @@ ammolite = { module = "com.github.vitorpamplona.amethyst:ammolite", version.ref 
 security-crypto-ktx = { module = "androidx.security:security-crypto-ktx", version.ref = "securityCryptoKtx" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomKtx" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomKtx" }
+picasso = { module = "com.squareup.picasso:picasso", version.ref = "picasso" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin_ksp = { id = "com.google.devtools.ksp", version = "ksp" }
-gradle_ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "ktlint" }
+kotlin_ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+gradle_ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 jetbrainsComposeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
