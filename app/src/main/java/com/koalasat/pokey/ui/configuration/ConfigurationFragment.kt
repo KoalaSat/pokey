@@ -20,81 +20,66 @@ class ConfigurationFragment : Fragment() {
         savedInstanceState: Bundle?,
     ): View {
         val viewModel =
-            ViewModelProvider(this).get(ConfigurationViewModel::class.java)
+            ViewModelProvider(this)[ConfigurationViewModel::class.java]
 
         _binding = FragmentNotificationsBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        viewModel.broadcast.value.apply { EncryptedStorage.broadcast.value }
-        binding.broadcast.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.updateBroadcast(isChecked)
-        }
         viewModel.broadcast.observe(viewLifecycleOwner) { value ->
             binding.broadcast.isChecked = value
         }
-
-        viewModel.newReplies.value.apply { EncryptedStorage.notifyReplies.value }
-        binding.newReplies.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.updateNotifyReplies(isChecked)
+        binding.broadcast.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.updateBroadcast(isChecked)
         }
+        viewModel.broadcast.value.apply { EncryptedStorage.broadcast.value }
+
         viewModel.newReplies.observe(viewLifecycleOwner) { value ->
             binding.newReplies.isChecked = value
         }
-
-        viewModel.newZaps.value.apply { EncryptedStorage.notifyZaps.value }
-        binding.newZaps.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.updateNotifyZaps(isChecked)
+        binding.newReplies.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.updateNotifyReplies(isChecked)
         }
+
         viewModel.newZaps.observe(viewLifecycleOwner) { value ->
             binding.newZaps.isChecked = value
         }
-
-        viewModel.newReactions.value.apply { EncryptedStorage.notifyReactions.value }
-        binding.newReactions.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.updateNotifyReactions(isChecked)
+        binding.newZaps.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.updateNotifyZaps(isChecked)
         }
+
         viewModel.newReactions.observe(viewLifecycleOwner) { value ->
             binding.newReactions.isChecked = value
         }
-
-        viewModel.newPrivate.value.apply { EncryptedStorage.notifyPrivate.value }
-        binding.newPrivate.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.updateNotifyPrivate(isChecked)
+        binding.newReactions.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.updateNotifyReactions(isChecked)
         }
+
         viewModel.newPrivate.observe(viewLifecycleOwner) { value ->
             binding.newPrivate.isChecked = value
         }
-
-        viewModel.newQuotes.value.apply { EncryptedStorage.notifyQuotes.value }
-        binding.newQuotes.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.updateNotifyQuotes(isChecked)
+        binding.newPrivate.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.updateNotifyPrivate(isChecked)
         }
+
         viewModel.newQuotes.observe(viewLifecycleOwner) { value ->
             binding.newQuotes.isChecked = value
         }
-
-        viewModel.newMentions.value.apply { EncryptedStorage.notifyMentions.value }
-        binding.newMentions.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.updateNotifyMentions(isChecked)
-        }
-        viewModel.newMentions.observe(viewLifecycleOwner) { value ->
-            binding.newMentions.isChecked = value
+        binding.newQuotes.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.updateNotifyQuotes(isChecked)
         }
 
-        viewModel.newReposts.value.apply { EncryptedStorage.notifyResposts.value }
-        binding.newReposts.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.updateNotifyReposts(isChecked)
-        }
         viewModel.newReposts.observe(viewLifecycleOwner) { value ->
             binding.newReposts.isChecked = value
         }
-
-        viewModel.newFollows.value.apply { EncryptedStorage.notifyFollows.value }
-        binding.newFollows.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.updateNotifyFollows(isChecked)
+        binding.newReposts.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.updateNotifyReposts(isChecked)
         }
-        viewModel.newFollows.observe(viewLifecycleOwner) { value ->
-            binding.newFollows.isChecked = value.apply { EncryptedStorage.notifyFollows.value }
+
+        viewModel.newMentions.observe(viewLifecycleOwner) { value ->
+            binding.newMentions.isChecked = value
+        }
+        binding.newMentions.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.updateNotifyMentions(isChecked)
         }
 
         return root

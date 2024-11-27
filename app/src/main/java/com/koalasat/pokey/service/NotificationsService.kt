@@ -255,18 +255,24 @@ class NotificationsService : Service() {
     }
 
     private fun createNoteNotification(event: Event) {
+        Log.d("Pokey", "createNoteNotification")
         CoroutineScope(Dispatchers.IO).launch {
             val userHexPub = Pokey.getInstance().getHexKey()
             if (!event.taggedUsers().contains(userHexPub)) return@launch
+            Log.d("Pokey", "taggedUsers")
 
             val db = AppDatabase.getDatabase(this@NotificationsService, userHexPub)
             val existsEvent = db.applicationDao().existsNotification(event.id)
             if (existsEvent > 0) return@launch
 
+            Log.d("Pokey", "existsEvent")
             db.applicationDao().insertNotification(NotificationEntity(0, event.id, event.createdAt))
 
             if (event.firstTaggedEvent()?.isNotEmpty() == true && db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString()) == 1) return@launch
             if (!event.hasVerifiedSignature()) return@launch
+
+            Log.d("Pokey", "firstTaggedEvent && hasVerifiedSignature")
+            val user = db.applicationDao().getUser(userHexPub)
 
             var title = ""
             var text = ""
@@ -276,17 +282,18 @@ class NotificationsService : Service() {
 
             when (event.kind) {
                 1 -> {
+                    Log.d("Pokey", event.toString())
                     title = when {
                         event.content().contains("nostr:$pubKey") -> {
-                            if (!EncryptedStorage.notifyMentions.value!!) return@launch
+                            if (user?.notifyMentions != 1) return@launch
                             getString(R.string.new_mention)
                         }
                         event.content().contains("nostr:nevent1") -> {
-                            if (!EncryptedStorage.notifyQuotes.value!!) return@launch
+                            if (user?.notifyQuotes != 1) return@launch
                             getString(R.string.new_quote)
                         }
                         else -> {
-                            if (!EncryptedStorage.notifyReplies.value!!) return@launch
+                            if (user?.notifyReplies != 1) return@launch
                             getString(R.string.new_reply)
                         }
                     }
@@ -294,19 +301,19 @@ class NotificationsService : Service() {
                     nip32Bech32 = Hex.decode(event.id).toNote()
                 }
                 6 -> {
-                    if (!EncryptedStorage.notifyResposts.value!!) return@launch
+                    if (user?.notifyReposts != 1) return@launch
 
                     title = getString(R.string.new_repost)
                     nip32Bech32 = Hex.decode(event.id).toNote()
                 }
                 4, 1059 -> {
-                    if (!EncryptedStorage.notifyPrivate.value!!) return@launch
+                    if (user?.notifyPrivate != 1) return@launch
 
                     title = getString(R.string.new_private)
                     nip32Bech32 = Hex.decode(event.pubKey).toNpub()
                 }
                 7 -> {
-                    if (!EncryptedStorage.notifyReactions.value!!) return@launch
+                    if (user?.notifyReactions != 1) return@launch
 
                     title = getString(R.string.new_reaction)
                     text = if (event.content.isEmpty() || event.content == "+") {
@@ -318,7 +325,7 @@ class NotificationsService : Service() {
                     nip32Bech32 = Hex.decode(taggedEvent).toNote()
                 }
                 9735 -> {
-                    if (!EncryptedStorage.notifyZaps.value!!) return@launch
+                    if (user?.notifyZaps != 1) return@launch
 
                     title = getString(R.string.new_zap)
                     val bolt11 = event.firstTag("bolt11")
@@ -340,16 +347,10 @@ class NotificationsService : Service() {
                         Log.d("Pokey", "Invalid Zap JSON")
                     }
                 }
-                3 -> {
-                    if (!EncryptedStorage.notifyFollows.value!!) return@launch
-                    if (event.taggedUsers().last() != EncryptedStorage.pubKey.value) return@launch
-
-                    title = getString(R.string.new_follow)
-                    nip32Bech32 = Hex.decode(event.pubKey).toNpub()
-                }
             }
 
             if (title.isEmpty()) return@launch
+            Log.d("Pokey", title)
 
             NostrClient.getNip05Content(event.pubKey, onResponse = {
                 try {
@@ -390,6 +391,7 @@ class NotificationsService : Service() {
     }
 
     private fun displayNoteNotification(title: String, text: String, authorBech32: String, avatar: Bitmap?, event: Event) {
+        Log.d("Pokey", "avatar $avatar")
         val deepLinkIntent = Intent(Intent.ACTION_VIEW).apply {
             data = Uri.parse("nostr:$authorBech32")
         }

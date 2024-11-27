@@ -54,6 +54,10 @@ class HomeFragment : Fragment() {
             }
         }
 
+        viewModel.avatar.observe(viewLifecycleOwner) { value ->
+            binding.avatar
+        }
+
         viewModel.npubInput.observe(viewLifecycleOwner) { value ->
             if (binding.npubInput.text.toString() != value) {
                 binding.npubInput.setText(value)

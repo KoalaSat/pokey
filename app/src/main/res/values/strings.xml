@@ -34,7 +34,6 @@
     <string name="active_quotes">New quotes</string>
     <string name="active_mentions">New mentions</string>
     <string name="active_reposts">New reposts</string>
-    <string name="active_follows">New follows</string>
     <string name="broadcast">Broadcast to other apps</string>
     <string name="public_inbox">Public inbox relays</string>
     <string name="private_inbox">Private inbox relays</string>

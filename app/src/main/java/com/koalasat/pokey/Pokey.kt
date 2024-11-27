@@ -5,17 +5,24 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.koalasat.pokey.database.AppDatabase
+import com.koalasat.pokey.database.UserEntity
 import com.koalasat.pokey.models.EncryptedStorage
 import com.koalasat.pokey.models.NostrClient
+import com.koalasat.pokey.models.NostrClient.getNip05Content
 import com.koalasat.pokey.service.NotificationsService
 import com.vitorpamplona.quartz.encoders.Nip19Bech32
 import com.vitorpamplona.quartz.encoders.Nip19Bech32.uriToRoute
+import kotlin.String
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import org.json.JSONException
 
 class Pokey : Application() {
     private val applicationIOScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -25,6 +32,8 @@ class Pokey : Application() {
         instance = this
 
         updateIsEnabled(isForegroundServiceEnabled(this))
+
+        migrateUserToDB()
 
         NostrClient.init()
     }
@@ -41,7 +50,38 @@ class Pokey : Application() {
                 NotificationsService::class.java,
             ),
         )
-        saveForegroundServicePreference(this, true)
+
+        saveForegroundServicePreference(this@Pokey, true)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val hexKey = getHexKey()
+            val dao = AppDatabase.getDatabase(this@Pokey, hexKey).applicationDao()
+            var newUser = UserEntity(
+                id = 0,
+                hexPub = hexKey,
+                name = null,
+                avatar = null,
+                createdAt = null,
+            )
+            dao.insertUser(newUser)
+            Log.e("Pokey", newUser.toString())
+            getNip05Content(
+                hexKey,
+                onResponse = {
+                    try {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            newUser.name = it?.getString("name")
+                            newUser.avatar = it?.getString("picture")
+                            newUser.createdAt = it?.getLong("created_at")
+                            if (dao.updateUser(newUser) == 1 && newUser.avatar?.isNotEmpty() == true) {
+                                EncryptedStorage.updateAvatar(newUser.avatar.toString())
+                            }
+                        }
+                    } catch (e: JSONException) {
+                    }
+                },
+            )
+        }
     }
 
     fun stopService() {
@@ -93,16 +133,63 @@ class Pokey : Application() {
         }
 
         fun isForegroundServiceEnabled(context: Context): Boolean {
-            val sharedPreferences: SharedPreferences = context.getSharedPreferences("PokeyPreferences", Context.MODE_PRIVATE)
+            val sharedPreferences: SharedPreferences = context.getSharedPreferences("PokeyPreferences", MODE_PRIVATE)
             return sharedPreferences.getBoolean("foreground_service_enabled", false)
         }
 
         private fun saveForegroundServicePreference(context: Context, value: Boolean) {
-            val sharedPreferences: SharedPreferences = context.getSharedPreferences("PokeyPreferences", Context.MODE_PRIVATE)
+            val sharedPreferences: SharedPreferences = context.getSharedPreferences("PokeyPreferences", MODE_PRIVATE)
             val editor = sharedPreferences.edit()
             editor.putBoolean("foreground_service_enabled", value)
             editor.apply()
             updateIsEnabled(value)
+        }
+    }
+
+    private fun migrateUserToDB() {
+        Log.e("Pokey", "migrateUserToDB")
+        CoroutineScope(Dispatchers.IO).launch {
+            if (EncryptedStorage.pubKey.value?.isNotEmpty() == true) {
+                Log.e("Pokey", "EncryptedStorage.pubKey.value")
+                val hexKey = getHexKey()
+                val dao = AppDatabase.getDatabase(this@Pokey, hexKey).applicationDao()
+                val existUser = dao.getUser(hexKey)
+                Log.e("Pokey", existUser.toString())
+                if (existUser == null) {
+                    var newUser = UserEntity(
+                        id = 0,
+                        hexPub = hexKey,
+                        name = null,
+                        avatar = null,
+                        createdAt = null,
+                        notifyReplies = if (EncryptedStorage.notifyReplies.value == true) 1 else 0,
+                        notifyPrivate = if (EncryptedStorage.notifyPrivate.value == true) 1 else 0,
+                        notifyZaps = if (EncryptedStorage.notifyZaps.value == true) 1 else 0,
+                        notifyQuotes = if (EncryptedStorage.notifyQuotes.value == true) 1 else 0,
+                        notifyReactions = if (EncryptedStorage.notifyReactions.value == true) 1 else 0,
+                        notifyMentions = if (EncryptedStorage.notifyMentions.value == true) 1 else 0,
+                        notifyReposts = if (EncryptedStorage.notifyResposts.value == true) 1 else 0,
+                    )
+                    dao.insertUser(newUser)
+                    Log.e("Pokey", newUser.toString())
+                    getNip05Content(
+                        hexKey,
+                        onResponse = {
+                            try {
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    newUser.name = it?.getString("name")
+                                    newUser.avatar = it?.getString("picture")
+                                    newUser.createdAt = it?.getLong("created_at")
+                                    if (dao.updateUser(newUser) == 1 && newUser.avatar?.isNotEmpty() == true) {
+                                        EncryptedStorage.updateAvatar(newUser.avatar.toString())
+                                    }
+                                }
+                            } catch (e: JSONException) {
+                            }
+                        },
+                    )
+                }
+            }
         }
     }
 }

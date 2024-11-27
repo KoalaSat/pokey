@@ -125,7 +125,7 @@ object NostrClient {
                 TypedFilter(
                     types = COMMON_FEED_TYPES,
                     filter = SincePerRelayFilter(
-                        kinds = listOf(1, 3, 4, 6, 7, 1059, 9735),
+                        kinds = listOf(1, 4, 6, 7, 1059, 9735),
                         tags = mapOf("p" to listOf(hexKey)),
                         since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification) },
                     ),
@@ -293,6 +293,7 @@ object NostrClient {
                         if (event.content.isNotEmpty()) {
                             try {
                                 val content = JSONObject(event.content)
+                                content.put("created_at", event.createdAt)
                                 usersNip05.put(event.pubKey, content)
                                 onResponse(content)
                             } catch (e: JSONException) {

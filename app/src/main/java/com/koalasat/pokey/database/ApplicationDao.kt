@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 
 @Dao
 interface ApplicationDao {
@@ -48,4 +49,13 @@ interface ApplicationDao {
 
     @Query("DELETE FROM mute where kind = :kind")
     fun deleteMuteList(kind: Int): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertUser(userEntity: UserEntity): Long?
+
+    @Update(onConflict = OnConflictStrategy.REPLACE)
+    fun updateUser(userEntity: UserEntity): Int
+
+    @Query("SELECT * FROM user WHERE hexPub = :hexPub LIMIT 1")
+    fun getUser(hexPub: String): UserEntity?
 }

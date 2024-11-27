@@ -21,7 +21,7 @@
         tools:layout_constraintTop_toBottomOf="@id/npub_input" />
 
     <ImageView
-        android:id="@+id/imageView2"
+        android:id="@+id/avatar"
         android:layout_width="109dp"
         android:layout_height="90dp"
         android:layout_marginTop="100dp"
@@ -43,7 +43,7 @@
         android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/imageView2">
+        app:layout_constraintTop_toBottomOf="@+id/avatar">
 
         <EditText
             android:id="@+id/npub_input"

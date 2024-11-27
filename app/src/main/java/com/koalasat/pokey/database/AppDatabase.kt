@@ -35,14 +35,37 @@ val MIGRATION_6_7 =
             db.execSQL("CREATE INDEX IF NOT EXISTS `relay_by_url` ON `relay` (`url`)")
         }
     }
+val MIGRATION_7_8 =
+    object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `user` (\n" +
+                    "    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,\n" +
+                    "    `hexPub` TEXT NOT NULL,\n" +
+                    "    `name` TEXT,\n" +
+                    "    `avatar` TEXT,\n" +
+                    "    `createdAt` INTEGER,\n" +
+                    "    `notifyReplies` INTEGER NOT NULL DEFAULT 1,\n" +
+                    "    `notifyPrivate` INTEGER NOT NULL DEFAULT 1,\n" +
+                    "    `notifyZaps` INTEGER NOT NULL DEFAULT 1,\n" +
+                    "    `notifyQuotes` INTEGER NOT NULL DEFAULT 1,\n" +
+                    "    `notifyReactions` INTEGER NOT NULL DEFAULT 1,\n" +
+                    "    `notifyMentions` INTEGER NOT NULL DEFAULT 1,\n" +
+                    "    `notifyReposts` INTEGER NOT NULL DEFAULT 1\n" +
+                    ");",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `user_by_hexPub` ON `user` (`hexPub`)")
+        }
+    }
 
 @Database(
     entities = [
         NotificationEntity::class,
         RelayEntity::class,
         MuteEntity::class,
+        UserEntity::class,
     ],
-    version = 7,
+    version = 8,
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -62,6 +85,7 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                         .addMigrations(MIGRATION_5_6)
                         .addMigrations(MIGRATION_6_7)
+                        .addMigrations(MIGRATION_7_8)
                         .build()
                 instance
             }

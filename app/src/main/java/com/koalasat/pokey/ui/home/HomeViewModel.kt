@@ -1,14 +1,20 @@
 package com.koalasat.pokey.ui.home
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.models.EncryptedStorage
 import com.vitorpamplona.quartz.encoders.Nip19Bech32
 import com.vitorpamplona.quartz.encoders.Nip19Bech32.uriToRoute
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(application: Application) : AndroidViewModel(application) {
+    private val appContext = getApplication<Application>().applicationContext
+
+    private val _avatar = MutableLiveData<String>()
+    val avatar: LiveData<String> get() = _avatar
+
     private val _npubInput = MutableLiveData<String>()
     val npubInput: LiveData<String> get() = _npubInput
 
@@ -23,6 +29,9 @@ class HomeViewModel : ViewModel() {
         _serviceStart.value = Pokey.isEnabled.value
         EncryptedStorage.pubKey.observeForever { text ->
             _npubInput.value = text
+        }
+        EncryptedStorage.avatar.observeForever { text ->
+            _avatar.value = text
         }
     }
 
