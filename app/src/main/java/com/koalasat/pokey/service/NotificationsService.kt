@@ -268,6 +268,8 @@ class NotificationsService : Service() {
             if (event.firstTaggedEvent()?.isNotEmpty() == true && db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString()) == 1) return@launch
             if (!event.hasVerifiedSignature()) return@launch
 
+            val user = db.applicationDao().getUser(userHexPub)
+
             var title = ""
             var text = ""
             val pubKey = EncryptedStorage.pubKey
@@ -278,15 +280,15 @@ class NotificationsService : Service() {
                 1 -> {
                     title = when {
                         event.content().contains("nostr:$pubKey") -> {
-                            if (!EncryptedStorage.notifyMentions.value!!) return@launch
+                            if (user?.notifyMentions != 1) return@launch
                             getString(R.string.new_mention)
                         }
                         event.content().contains("nostr:nevent1") -> {
-                            if (!EncryptedStorage.notifyQuotes.value!!) return@launch
+                            if (user?.notifyQuotes != 1) return@launch
                             getString(R.string.new_quote)
                         }
                         else -> {
-                            if (!EncryptedStorage.notifyReplies.value!!) return@launch
+                            if (user?.notifyReplies != 1) return@launch
                             getString(R.string.new_reply)
                         }
                     }
@@ -294,19 +296,19 @@ class NotificationsService : Service() {
                     nip32Bech32 = Hex.decode(event.id).toNote()
                 }
                 6 -> {
-                    if (!EncryptedStorage.notifyResposts.value!!) return@launch
+                    if (user?.notifyReposts != 1) return@launch
 
                     title = getString(R.string.new_repost)
                     nip32Bech32 = Hex.decode(event.id).toNote()
                 }
                 4, 1059 -> {
-                    if (!EncryptedStorage.notifyPrivate.value!!) return@launch
+                    if (user?.notifyPrivate != 1) return@launch
 
                     title = getString(R.string.new_private)
                     nip32Bech32 = Hex.decode(event.pubKey).toNpub()
                 }
                 7 -> {
-                    if (!EncryptedStorage.notifyReactions.value!!) return@launch
+                    if (user?.notifyReactions != 1) return@launch
 
                     title = getString(R.string.new_reaction)
                     text = if (event.content.isEmpty() || event.content == "+") {
@@ -318,7 +320,7 @@ class NotificationsService : Service() {
                     nip32Bech32 = Hex.decode(taggedEvent).toNote()
                 }
                 9735 -> {
-                    if (!EncryptedStorage.notifyZaps.value!!) return@launch
+                    if (user?.notifyZaps != 1) return@launch
 
                     title = getString(R.string.new_zap)
                     val bolt11 = event.firstTag("bolt11")
@@ -339,13 +341,6 @@ class NotificationsService : Service() {
                     } catch (e: JSONException) {
                         Log.d("Pokey", "Invalid Zap JSON")
                     }
-                }
-                3 -> {
-                    if (!EncryptedStorage.notifyFollows.value!!) return@launch
-                    if (event.taggedUsers().last() != EncryptedStorage.pubKey.value) return@launch
-
-                    title = getString(R.string.new_follow)
-                    nip32Bech32 = Hex.decode(event.pubKey).toNpub()
                 }
             }
 
@@ -422,7 +417,6 @@ class NotificationsService : Service() {
                 .addAction(0, getString(R.string.mute_thread), pendingIntentMute)
                 .setAutoCancel(true)
 
-        Log.d("Pokey", "notificationId ${event.id.hashCode()}")
         notificationManager.notify(event.id.hashCode(), builder.build())
     }
 }

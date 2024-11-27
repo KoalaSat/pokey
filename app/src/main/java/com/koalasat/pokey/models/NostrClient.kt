@@ -30,6 +30,7 @@ object NostrClient {
     private var subscriptionMuteId = "pokeyMuteList"
     private var subscriptionInboxId = "pokeyInboxRelays"
     private var subscriptionReadId = "pokeyReadRelays"
+    private var subscriptionMetaId = "pokeyMeta"
 
     private var usersNip05 = ConcurrentHashMap<String, JSONObject>()
 
@@ -125,7 +126,7 @@ object NostrClient {
                 TypedFilter(
                     types = COMMON_FEED_TYPES,
                     filter = SincePerRelayFilter(
-                        kinds = listOf(1, 3, 4, 6, 7, 1059, 9735),
+                        kinds = listOf(1, 4, 6, 7, 1059, 9735),
                         tags = mapOf("p" to listOf(hexKey)),
                         since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification) },
                     ),
@@ -135,7 +136,6 @@ object NostrClient {
     }
 
     fun reconnectInbox(context: Context, kind: Int) {
-        Log.d("Pokey", "reconnectInbox")
         val db = AppDatabase.getDatabase(context, Pokey.getInstance().getHexKey())
         db.applicationDao().deleteRelaysByKind(kind)
         Client.close(subscriptionInboxId)
@@ -246,7 +246,6 @@ object NostrClient {
                 content = content,
                 sig = "",
             )
-        Log.d("Pokey", event.toJson())
         ExternalSigner.sign(event) {
             val signeEvent = Event(
                 id = id,
@@ -264,19 +263,16 @@ object NostrClient {
 
     fun getNip05Content(hexPubKey: String, onResponse: (JSONObject?) -> Unit) {
         if (usersNip05.containsKey(hexPubKey)) {
-            Log.d("Pokey", "Recovering NIP05")
             onResponse(usersNip05.getValue(hexPubKey))
         } else {
-            Log.d("Pokey", "Fetching NIP05")
             val handler = Handler(Looper.getMainLooper())
             val timeoutRunnable = Runnable {
-                Log.d("Pokey", "NIP05 not found")
                 onResponse(null)
             }
             handler.postDelayed(timeoutRunnable, 5000)
 
             Client.sendFilterAndStopOnFirstResponse(
-                subscriptionReadId,
+                subscriptionMetaId,
                 listOf(
                     TypedFilter(
                         types = EVENT_FINDER_TYPES,
@@ -288,11 +284,11 @@ object NostrClient {
                 ),
                 onResponse = { event ->
                     if (event.pubKey == hexPubKey) {
-                        Log.d("Pokey", "NIP05 found")
                         handler.removeCallbacks(timeoutRunnable)
                         if (event.content.isNotEmpty()) {
                             try {
                                 val content = JSONObject(event.content)
+                                content.put("created_at", event.createdAt)
                                 usersNip05.put(event.pubKey, content)
                                 onResponse(content)
                             } catch (e: JSONException) {

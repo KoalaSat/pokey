@@ -13,6 +13,8 @@ import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.R
 import com.koalasat.pokey.databinding.FragmentHomeBinding
 import com.koalasat.pokey.models.ExternalSigner
+import com.koalasat.pokey.utils.images.CircleTransform
+import com.squareup.picasso.Picasso
 
 class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
@@ -51,6 +53,17 @@ class HomeFragment : Fragment() {
                 } else {
                     binding.npubInput.error = getString(R.string.invalid_npub)
                 }
+            }
+        }
+
+        viewModel.avatar.observe(viewLifecycleOwner) { value ->
+            if (value.isNotEmpty()) {
+                Picasso.get()
+                    .load(value)
+                    .resize(512, 512)
+                    .centerCrop()
+                    .transform(CircleTransform())
+                    .into(binding.avatar)
             }
         }
 

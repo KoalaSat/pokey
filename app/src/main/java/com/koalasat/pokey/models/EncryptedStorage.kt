@@ -9,6 +9,7 @@ import androidx.security.crypto.MasterKey
 
 object PrefKeys {
     const val NOSTR_PUBKEY = "nostr_pubkey"
+    const val NOSTR_AVATAR = "nostr_avatar"
     const val NOSTR_BROADCAST = "broadcast"
     const val NOTIFY_REPLIES = "notify_replies"
     const val NOTIFY_PRIVATE = "notify_private"
@@ -17,7 +18,6 @@ object PrefKeys {
     const val NOTIFY_REACTIONS = "notify_reactions"
     const val NOTIFY_MENTIONS = "notify_mentions"
     const val NOTIFY_REPOSTS = "notify_reposts"
-    const val NOTIFY_FOLLOWS = "notify_follows"
     const val EXTERNAL_SIGNER = "external_signer"
 }
 object DefaultKeys {
@@ -29,7 +29,6 @@ object DefaultKeys {
     const val NOTIFY_QUOTES = true
     const val NOTIFY_MENTIONS = true
     const val NOTIFY_REPOSTS = true
-    const val NOTIFY_FOLLOWS = true
     const val EXTERNAL_SIGNER = "com.greenart7c3.nostrsigner"
 }
 
@@ -40,6 +39,8 @@ object EncryptedStorage {
 
     private val _pubKey = MutableLiveData<String>()
     val pubKey: LiveData<String> get() = _pubKey
+    private val _avatar = MutableLiveData<String>()
+    val avatar: LiveData<String> get() = _avatar
 
     private val _broadcast = MutableLiveData<Boolean>().apply { DefaultKeys.BROADCAST }
     val broadcast: LiveData<Boolean> get() = _broadcast
@@ -57,8 +58,6 @@ object EncryptedStorage {
     val notifyMentions: LiveData<Boolean> get() = _notifyMentions
     private val _notifyResposts = MutableLiveData<Boolean>().apply { DefaultKeys.NOTIFY_REPOSTS }
     val notifyResposts: LiveData<Boolean> get() = _notifyResposts
-    private val _notifyFollows = MutableLiveData<Boolean>().apply { DefaultKeys.NOTIFY_FOLLOWS }
-    val notifyFollows: LiveData<Boolean> get() = _notifyFollows
     private val _externalSigner = MutableLiveData<String>().apply { DefaultKeys.EXTERNAL_SIGNER }
     val externalSigner: LiveData<String> get() = _externalSigner
 
@@ -77,6 +76,7 @@ object EncryptedStorage {
         ) as EncryptedSharedPreferences
 
         _pubKey.value = sharedPreferences.getString(PrefKeys.NOSTR_PUBKEY, "")
+        _avatar.value = sharedPreferences.getString(PrefKeys.NOSTR_AVATAR, "")
         _broadcast.value = sharedPreferences.getBoolean(PrefKeys.NOSTR_BROADCAST, DefaultKeys.BROADCAST)
         _notifyReplies.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_REPLIES, DefaultKeys.NOTIFY_REPLIES)
         _notifyReactions.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_REACTIONS, DefaultKeys.NOTIFY_REACTIONS)
@@ -85,7 +85,6 @@ object EncryptedStorage {
         _notifyQuotes.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_QUOTES, DefaultKeys.NOTIFY_QUOTES)
         _notifyMentions.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_MENTIONS, DefaultKeys.NOTIFY_MENTIONS)
         _notifyResposts.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_REPOSTS, DefaultKeys.NOTIFY_REPOSTS)
-        _notifyFollows.value = sharedPreferences.getBoolean(PrefKeys.NOTIFY_FOLLOWS, DefaultKeys.NOTIFY_FOLLOWS)
         _externalSigner.value = sharedPreferences.getString(PrefKeys.EXTERNAL_SIGNER, DefaultKeys.EXTERNAL_SIGNER) ?: DefaultKeys.EXTERNAL_SIGNER
     }
 
@@ -99,48 +98,13 @@ object EncryptedStorage {
         _pubKey.value = newValue
     }
 
+    fun updateAvatar(newValue: String) {
+        sharedPreferences.edit().putString(PrefKeys.NOSTR_AVATAR, newValue).apply()
+        _avatar.value = newValue
+    }
+
     fun updateBroadcast(newValue: Boolean) {
         sharedPreferences.edit().putBoolean(PrefKeys.NOSTR_BROADCAST, newValue).apply()
         _broadcast.value = newValue
-    }
-
-    fun updateNotifyReplies(newValue: Boolean) {
-        sharedPreferences.edit().putBoolean(PrefKeys.NOTIFY_REPLIES, newValue).apply()
-        _notifyReplies.value = newValue
-    }
-
-    fun updateNotifyReactions(newValue: Boolean) {
-        sharedPreferences.edit().putBoolean(PrefKeys.NOTIFY_REACTIONS, newValue).apply()
-        _notifyReactions.value = newValue
-    }
-
-    fun updateNotifyPrivate(newValue: Boolean) {
-        sharedPreferences.edit().putBoolean(PrefKeys.NOTIFY_PRIVATE, newValue).apply()
-        _notifyPrivate.value = newValue
-    }
-
-    fun updateNotifyZaps(newValue: Boolean) {
-        sharedPreferences.edit().putBoolean(PrefKeys.NOTIFY_ZAPS, newValue).apply()
-        _notifyZaps.value = newValue
-    }
-
-    fun updateNotifyQuotes(newValue: Boolean) {
-        sharedPreferences.edit().putBoolean(PrefKeys.NOTIFY_QUOTES, newValue).apply()
-        _notifyQuotes.value = newValue
-    }
-
-    fun updateNotifyMentions(newValue: Boolean) {
-        sharedPreferences.edit().putBoolean(PrefKeys.NOTIFY_MENTIONS, newValue).apply()
-        _notifyMentions.value = newValue
-    }
-
-    fun updateNotifyReposts(newValue: Boolean) {
-        sharedPreferences.edit().putBoolean(PrefKeys.NOTIFY_REPOSTS, newValue).apply()
-        _notifyResposts.value = newValue
-    }
-
-    fun updateNotifyFollows(newValue: Boolean) {
-        sharedPreferences.edit().putBoolean(PrefKeys.NOTIFY_FOLLOWS, newValue).apply()
-        _notifyFollows.value = newValue
     }
 }
