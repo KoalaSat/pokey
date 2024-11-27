@@ -5,6 +5,8 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.koalasat.pokey.database.AppDatabase
@@ -143,8 +145,12 @@ class Pokey : Application() {
                                     newUser.name = it?.getString("name")
                                     newUser.avatar = it?.getString("picture")
                                     newUser.createdAt = it?.getLong("created_at")
-                                    if (dao.updateUser(newUser) == 1 && newUser.avatar?.isNotEmpty() == true) {
-                                        EncryptedStorage.updateAvatar(newUser.avatar.toString())
+                                    dao.updateUser(newUser)
+                                    if (newUser.avatar?.isNotEmpty() == true) {
+                                        val handler = Handler(Looper.getMainLooper())
+                                        handler.post {
+                                            EncryptedStorage.updateAvatar(newUser.avatar.toString())
+                                        }
                                     }
                                 }
                             } catch (e: JSONException) {

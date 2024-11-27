@@ -255,23 +255,19 @@ class NotificationsService : Service() {
     }
 
     private fun createNoteNotification(event: Event) {
-        Log.d("Pokey", "createNoteNotification")
         CoroutineScope(Dispatchers.IO).launch {
             val userHexPub = Pokey.getInstance().getHexKey()
             if (!event.taggedUsers().contains(userHexPub)) return@launch
-            Log.d("Pokey", "taggedUsers")
 
             val db = AppDatabase.getDatabase(this@NotificationsService, userHexPub)
             val existsEvent = db.applicationDao().existsNotification(event.id)
             if (existsEvent > 0) return@launch
 
-            Log.d("Pokey", "existsEvent")
             db.applicationDao().insertNotification(NotificationEntity(0, event.id, event.createdAt))
 
             if (event.firstTaggedEvent()?.isNotEmpty() == true && db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString()) == 1) return@launch
             if (!event.hasVerifiedSignature()) return@launch
 
-            Log.d("Pokey", "firstTaggedEvent && hasVerifiedSignature")
             val user = db.applicationDao().getUser(userHexPub)
 
             var title = ""
@@ -282,7 +278,6 @@ class NotificationsService : Service() {
 
             when (event.kind) {
                 1 -> {
-                    Log.d("Pokey", event.toString())
                     title = when {
                         event.content().contains("nostr:$pubKey") -> {
                             if (user?.notifyMentions != 1) return@launch
@@ -350,7 +345,6 @@ class NotificationsService : Service() {
             }
 
             if (title.isEmpty()) return@launch
-            Log.d("Pokey", title)
 
             NostrClient.getNip05Content(event.pubKey, onResponse = {
                 try {
@@ -391,7 +385,6 @@ class NotificationsService : Service() {
     }
 
     private fun displayNoteNotification(title: String, text: String, authorBech32: String, avatar: Bitmap?, event: Event) {
-        Log.d("Pokey", "avatar $avatar")
         val deepLinkIntent = Intent(Intent.ACTION_VIEW).apply {
             data = Uri.parse("nostr:$authorBech32")
         }
@@ -424,7 +417,6 @@ class NotificationsService : Service() {
                 .addAction(0, getString(R.string.mute_thread), pendingIntentMute)
                 .setAutoCancel(true)
 
-        Log.d("Pokey", "notificationId ${event.id.hashCode()}")
         notificationManager.notify(event.id.hashCode(), builder.build())
     }
 }
