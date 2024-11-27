@@ -66,16 +66,6 @@ override fun onStop() {
 
 ```
 
-# Sponsors
-
-<div align="center">
-    <a href="https://opensats.org" target="_blank">
-        <img src="./docs/opensats.webp" alt="OpenSats Logo" />
-        <p>
-        <span>OpenSats Initiative</span>
-    </a>
-</div>
-
 # Kudos
 
 - Inspired by [https://github.com/greenart7c3/Amber](https://github.com/greenart7c3/Amber)

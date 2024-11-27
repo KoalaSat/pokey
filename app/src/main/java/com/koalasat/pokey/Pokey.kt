@@ -128,13 +128,6 @@ class Pokey : Application() {
                         name = null,
                         avatar = null,
                         createdAt = null,
-                        notifyReplies = if (EncryptedStorage.notifyReplies.value == true) 1 else 0,
-                        notifyPrivate = if (EncryptedStorage.notifyPrivate.value == true) 1 else 0,
-                        notifyZaps = if (EncryptedStorage.notifyZaps.value == true) 1 else 0,
-                        notifyQuotes = if (EncryptedStorage.notifyQuotes.value == true) 1 else 0,
-                        notifyReactions = if (EncryptedStorage.notifyReactions.value == true) 1 else 0,
-                        notifyMentions = if (EncryptedStorage.notifyMentions.value == true) 1 else 0,
-                        notifyReposts = if (EncryptedStorage.notifyResposts.value == true) 1 else 0,
                     )
                     dao.insertUser(newUser)
                     getNip05Content(

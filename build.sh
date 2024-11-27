@@ -11,7 +11,6 @@ appName=$2
 ./gradlew clean bundleRelease --stacktrace
 ./gradlew assembleRelease --stacktrace
 rm ~/release/pokey-*
-rm ~/release/citrine-*
 rm ~/release/manifest-*
 mv app/build/outputs/bundle/release/app-release.aab ~/release/
 mv app/build/outputs/apk/release/app-* ~/release/
