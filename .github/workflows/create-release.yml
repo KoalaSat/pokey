@@ -31,6 +31,20 @@ jobs:
       - name: Build APK
         run: ./gradlew assembleRelease --stacktrace
 
+      - name: 'Check for non-FOSS libraries'
+        run: |
+          wget https://github.com/iBotPeaches/Apktool/releases/download/v2.7.0/apktool_2.7.0.jar
+          wget https://github.com/iBotPeaches/Apktool/raw/master/scripts/linux/apktool
+          # clone the repo
+          git clone https://gitlab.com/IzzyOnDroid/repo.git
+          # create a directory for Apktool and move the apktool* files there
+          mkdir -p repo/lib/radar/tool
+          mv apktool* repo/lib/radar/tool
+          # create an alias for ease of use
+          chmod u+x repo/lib/radar/tool/apktool
+          mv repo/lib/radar/tool/apktool_2.7.0.jar repo/lib/radar/tool/apktool.jar
+          repo/bin/scanapk.php app/build/outputs/apk/release/app-universal-release-unsigned.apk
+
       - name: Sign APK
         uses: r0adkll/sign-android-release@v1
         with:
@@ -75,4 +89,26 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: app/build/outputs/apk/release/app-release-unsigned-signed.apk
           asset_name: pokey-universal-${{ steps.set_asset_name.outputs.asset_tag }}.apk
+          asset_content_type: application/zip
+
+      - name: Upload APK arm64 Asset
+        id: upload-release-asset-arm64-apk
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
+          asset_name: pokey-arm64-v8a-${{ steps.set_asset_name.outputs.asset_tag }}.apk
+          asset_content_type: application/zip
+
+      - name: Upload APK armeabi Asset
+        id: upload-release-asset-arm64-v8a-apk
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/apk/release/app-armeabi-v7a-release-unsigned.apk
+          asset_name: pokey-armeabi-v7a-${{ steps.set_asset_name.outputs.asset_tag }}.apk
           asset_content_type: application/zip

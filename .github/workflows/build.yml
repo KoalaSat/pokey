@@ -44,6 +44,20 @@ jobs:
       - name: Build APK (gradle)
         run: ./gradlew assembleDebug --no-daemon
 
+      - name: 'Check for non-FOSS libraries'
+        run: |
+          wget https://github.com/iBotPeaches/Apktool/releases/download/v2.7.0/apktool_2.7.0.jar
+          wget https://github.com/iBotPeaches/Apktool/raw/master/scripts/linux/apktool
+          # clone the repo
+          git clone https://gitlab.com/IzzyOnDroid/repo.git
+          # create a directory for Apktool and move the apktool* files there
+          mkdir -p repo/lib/radar/tool
+          mv apktool* repo/lib/radar/tool
+          # create an alias for ease of use
+          chmod u+x repo/lib/radar/tool/apktool
+          mv repo/lib/radar/tool/apktool_2.7.0.jar repo/lib/radar/tool/apktool.jar
+          repo/bin/scanapk.php app/build/outputs/apk/debug/app-universal-debug.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v3
         with:
