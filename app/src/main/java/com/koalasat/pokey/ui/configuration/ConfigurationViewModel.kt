@@ -44,23 +44,7 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
         EncryptedStorage.broadcast.observeForever { value ->
             _broadcast.value = value
         }
-        CoroutineScope(Dispatchers.IO).launch {
-            val hexKey = Pokey.getInstance().getHexKey()
-            val dao = AppDatabase.getDatabase(appContext, hexKey).applicationDao()
-            val activeUser = dao.getUser(hexKey)
-            if (activeUser != null) {
-                val mainHandler = Handler(Looper.getMainLooper())
-                mainHandler.post {
-                    _newReplies.value = activeUser.notifyReplies == 1
-                    _newZaps.value = activeUser.notifyZaps == 1
-                    _newQuotes.value = activeUser.notifyZaps == 1
-                    _newReactions.value = activeUser.notifyReactions == 1
-                    _newPrivate.value = activeUser.notifyPrivate == 1
-                    _newMentions.value = activeUser.notifyMentions == 1
-                    _newReposts.value = activeUser.notifyReposts == 1
-                }
-            }
-        }
+        refreshData()
     }
 
     fun updateBroadcast(value: Boolean) {
@@ -155,6 +139,26 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
             if (activeUser != null) {
                 activeUser.notifyReposts = if (value) 1 else 0
                 dao.updateUser(activeUser)
+            }
+        }
+    }
+
+    fun refreshData() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val hexKey = Pokey.getInstance().getHexKey()
+            val dao = AppDatabase.getDatabase(appContext, hexKey).applicationDao()
+            val activeUser = dao.getUser(hexKey)
+            if (activeUser != null) {
+                val mainHandler = Handler(Looper.getMainLooper())
+                mainHandler.post {
+                    _newReplies.value = activeUser.notifyReplies == 1
+                    _newZaps.value = activeUser.notifyZaps == 1
+                    _newQuotes.value = activeUser.notifyZaps == 1
+                    _newReactions.value = activeUser.notifyReactions == 1
+                    _newPrivate.value = activeUser.notifyPrivate == 1
+                    _newMentions.value = activeUser.notifyMentions == 1
+                    _newReposts.value = activeUser.notifyReposts == 1
+                }
             }
         }
     }

@@ -11,24 +11,10 @@ object PrefKeys {
     const val NOSTR_PUBKEY = "nostr_pubkey"
     const val NOSTR_AVATAR = "nostr_avatar"
     const val NOSTR_BROADCAST = "broadcast"
-    const val NOTIFY_REPLIES = "notify_replies"
-    const val NOTIFY_PRIVATE = "notify_private"
-    const val NOTIFY_ZAPS = "notify_zaps"
-    const val NOTIFY_QUOTES = "notify_quotes"
-    const val NOTIFY_REACTIONS = "notify_reactions"
-    const val NOTIFY_MENTIONS = "notify_mentions"
-    const val NOTIFY_REPOSTS = "notify_reposts"
     const val EXTERNAL_SIGNER = "external_signer"
 }
 object DefaultKeys {
     const val BROADCAST = true
-    const val NOTIFY_REPLIES = true
-    const val NOTIFY_REACTIONS = true
-    const val NOTIFY_PRIVATE = true
-    const val NOTIFY_ZAPS = true
-    const val NOTIFY_QUOTES = true
-    const val NOTIFY_MENTIONS = true
-    const val NOTIFY_REPOSTS = true
     const val EXTERNAL_SIGNER = "com.greenart7c3.nostrsigner"
 }
 
