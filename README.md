@@ -1,4 +1,4 @@
-# Pokey
+# Cucaburra
 [![GitHub downloads](https://img.shields.io/github/downloads/KoalaSat/pokey/total?label=Downloads&labelColor=27303D&color=0D1117&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/KoalaSat/pokey/releases)
 [![release](https://img.shields.io/github/v/release/KoalaSat/pokey)](https://github.com/KoalaSat/nostros/pokey)
 [![MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/KoalaSat/pokey/blob/main/LICENSE)
