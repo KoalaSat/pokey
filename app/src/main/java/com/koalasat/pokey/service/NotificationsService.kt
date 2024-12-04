@@ -262,7 +262,7 @@ class NotificationsService : Service() {
     private fun createNoteNotification(event: Event) {
         CoroutineScope(Dispatchers.IO).launch {
             val userHexPub = event.taggedUsers().find { it in hexPubKeysList }
-            if (userHexPub?.isNotEmpty() != true) return@launch
+            if (userHexPub?.isNotEmpty() != true || userHexPub == event.pubKey) return@launch
 
             val db = AppDatabase.getDatabase(this@NotificationsService, "common")
             val existsEvent = db.applicationDao().existsNotification(event.id)

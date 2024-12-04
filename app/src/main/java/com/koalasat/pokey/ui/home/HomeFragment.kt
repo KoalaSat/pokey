@@ -276,8 +276,8 @@ class HomeFragment : Fragment() {
     private fun loadUser(user: UserEntity) {
         NostrClient.getNip05Content(user.hexPub, onResponse = {
             try {
-                user.name = it?.getString("name").toString()
-                user.avatar = it?.getString("picture").toString()
+                user.name = it?.getString("name") ?: user.name
+                user.avatar = it?.getString("picture") ?: user.avatar
                 CoroutineScope(Dispatchers.IO).launch {
                     val dao = context?.let { AppDatabase.getDatabase(it, "common").applicationDao() }
                     dao?.updateUser(user)
