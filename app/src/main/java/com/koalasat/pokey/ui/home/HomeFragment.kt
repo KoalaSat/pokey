@@ -59,58 +59,60 @@ class HomeFragment : Fragment() {
             ViewModelProvider(this)[HomeViewModel::class.java]
 
         homeViewModel.accountList.observeForever { value ->
-            binding.serviceStart.isEnabled = value?.isNotEmpty() == true
-            if (binding.accountList.size > 1) {
-                binding.accountList.removeViews(0, binding.accountList.size - 1)
-            }
-            value.reversed().forEach { user ->
-                val imageWithTextLayout = LinearLayout(requireContext()).apply {
-                    orientation = LinearLayout.VERTICAL
-                    layoutParams = GridLayout.LayoutParams().apply {
-                        height = GridLayout.LayoutParams.WRAP_CONTENT
-                        width = 0
-                        setMargins(4, 4, 4, 4)
-                        columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+            if (binding != null) {
+                binding.serviceStart.isEnabled = value?.isNotEmpty() == true
+                if (binding.accountList.size > 1) {
+                    binding.accountList.removeViews(0, binding.accountList.size - 1)
+                }
+                value.reversed().forEach { user ->
+                    val imageWithTextLayout = LinearLayout(requireContext()).apply {
+                        orientation = LinearLayout.VERTICAL
+                        layoutParams = GridLayout.LayoutParams().apply {
+                            height = GridLayout.LayoutParams.WRAP_CONTENT
+                            width = 0
+                            setMargins(4, 4, 4, 4)
+                            columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                        }
                     }
-                }
 
-                val imageView = ImageView(requireContext()).apply {
-                    id = user.hexPub.hashCode()
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 90f, context.resources.displayMetrics).toInt(),
-                    )
-                    contentDescription = context.getString(R.string.logo)
-                    setImageResource(R.mipmap.ic_launcher)
-                }
-
-                val textView = TextView(requireContext()).apply {
-                    text = if (user.name?.isNotEmpty() == true) {
-                        user.name
-                    } else {
-                        Hex.decode(user.hexPub).toNpub().substring(0, 10) + "..."
+                    val imageView = ImageView(requireContext()).apply {
+                        id = user.hexPub.hashCode()
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 90f, context.resources.displayMetrics).toInt(),
+                        )
+                        contentDescription = context.getString(R.string.logo)
+                        setImageResource(R.mipmap.ic_launcher)
                     }
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                    )
-                    gravity = Gravity.CENTER
-                }
 
-                imageView.setOnClickListener { view ->
-                    if (Pokey.isEnabled.value != true) {
-                        showUserPopupMenu(view, user)
-                    } else {
-                        Toast.makeText(requireContext(), getString(R.string.stopPokey), Toast.LENGTH_SHORT).show()
+                    val textView = TextView(requireContext()).apply {
+                        text = if (user.name?.isNotEmpty() == true) {
+                            user.name
+                        } else {
+                            Hex.decode(user.hexPub).toNpub().substring(0, 10) + "..."
+                        }
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                        )
+                        gravity = Gravity.CENTER
                     }
+
+                    imageView.setOnClickListener { view ->
+                        if (Pokey.isEnabled.value != true) {
+                            showUserPopupMenu(view, user)
+                        } else {
+                            Toast.makeText(requireContext(), getString(R.string.stopPokey), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+
+                    loadAvatar(user.avatar.toString(), imageView)
+
+                    imageWithTextLayout.addView(imageView)
+                    imageWithTextLayout.addView(textView)
+
+                    binding.accountList.addView(imageWithTextLayout, 0)
                 }
-
-                loadAvatar(user.avatar.toString(), imageView)
-
-                imageWithTextLayout.addView(imageView)
-                imageWithTextLayout.addView(textView)
-
-                binding.accountList.addView(imageWithTextLayout, 0)
             }
         }
 
