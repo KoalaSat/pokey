@@ -9,7 +9,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.R
-import com.koalasat.pokey.database.AppDatabase
 import com.vitorpamplona.quartz.encoders.toHexKey
 import com.vitorpamplona.quartz.events.Event
 import com.vitorpamplona.quartz.signers.ExternalSignerLauncher
@@ -17,8 +16,6 @@ import com.vitorpamplona.quartz.signers.SignerType
 import com.vitorpamplona.quartz.utils.TimeUtils
 import java.util.UUID
 import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 object ExternalSigner {
@@ -35,14 +32,8 @@ object ExternalSigner {
             }
         }
 
-        CoroutineScope(Dispatchers.IO).launch {
-            val db = AppDatabase.getDatabase(activity, "common")
-            val users = db.applicationDao().getUsers()
-            users.forEach {
-                if (it.signer > 0) {
-                    startLauncher(it.hexPub)
-                }
-            }
+        EncryptedStorage.inboxPubKey.observeForever {
+            startLauncher(it)
         }
     }
 
@@ -66,6 +57,8 @@ object ExternalSigner {
     }
 
     fun auth(hexKey: String, relayUrl: String, challenge: String, onReady: (Event) -> Unit) {
+        if (!::externalSignerLauncher.isInitialized) return
+
         val createdAt = TimeUtils.now()
         val kind = 22242
         val content = ""

@@ -24,17 +24,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     init {
         _serviceStart.postValue(Pokey.isEnabled.value)
 
-        loadAccouts()
+        loadAccounts()
     }
 
-    fun loadAccouts() {
+    fun loadAccounts() {
         CoroutineScope(Dispatchers.IO).launch {
+            _accountList.postValue(emptyList<UserEntity>())
             val dao = appContext?.let { AppDatabase.getDatabase(it, "common").applicationDao() }
             if (dao != null) {
                 withContext(Dispatchers.IO) {
-                    val accounst = dao.getUsers()
+                    val users = dao.getUsers()
                     withContext(Dispatchers.Main) {
-                        _accountList.postValue(accounst)
+                        _accountList.postValue(users)
                     }
                 }
             }

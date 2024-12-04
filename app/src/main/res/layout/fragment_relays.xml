@@ -34,9 +34,16 @@
                     android:id="@+id/title_relays"
                     android:layout_width="match_parent"
                     android:layout_height="39dp"
+                    android:layout_marginBottom="40dp"
                     android:hint="@string/not_started"
                     android:textAlignment="center"
                     android:textSize="20sp" />
+
+                <Button
+                    android:id="@+id/active_account"
+                    android:layout_width="match_parent"
+                    android:layout_marginBottom="40dp"
+                    android:layout_height="wrap_content" />
 
                 <TextView
                     android:id="@+id/title_public_inbox"

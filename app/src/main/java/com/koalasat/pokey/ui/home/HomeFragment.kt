@@ -7,14 +7,18 @@ import android.os.Bundle
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.PopupMenu
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.view.size
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.gridlayout.widget.GridLayout
@@ -26,6 +30,7 @@ import com.koalasat.pokey.database.UserEntity
 import com.koalasat.pokey.databinding.FragmentHomeBinding
 import com.koalasat.pokey.models.EncryptedStorage
 import com.koalasat.pokey.models.ExternalSigner
+import com.koalasat.pokey.models.NostrClient
 import com.koalasat.pokey.utils.images.CircleTransform
 import com.koalasat.pokey.utils.isDarkThemeEnabled
 import com.squareup.picasso.Picasso
@@ -36,6 +41,7 @@ import com.vitorpamplona.quartz.encoders.toNpub
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONException
 
 class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
@@ -54,7 +60,10 @@ class HomeFragment : Fragment() {
 
         homeViewModel.accountList.observeForever { value ->
             binding.serviceStart.isEnabled = value?.isNotEmpty() == true
-            value.forEach { user ->
+            if (binding.accountList.size > 1) {
+                binding.accountList.removeViews(0, binding.accountList.size - 1)
+            }
+            value.reversed().forEach { user ->
                 val imageWithTextLayout = LinearLayout(requireContext()).apply {
                     orientation = LinearLayout.VERTICAL
                     layoutParams = GridLayout.LayoutParams().apply {
@@ -77,7 +86,7 @@ class HomeFragment : Fragment() {
 
                 val textView = TextView(requireContext()).apply {
                     text = if (user.name?.isNotEmpty() == true) {
-                        user.name?.substring(0, 10) + "..."
+                        user.name
                     } else {
                         Hex.decode(user.hexPub).toNpub().substring(0, 10) + "..."
                     }
@@ -86,6 +95,14 @@ class HomeFragment : Fragment() {
                         LinearLayout.LayoutParams.WRAP_CONTENT,
                     )
                     gravity = Gravity.CENTER
+                }
+
+                imageView.setOnClickListener { view ->
+                    if (Pokey.isEnabled.value != true) {
+                        showUserPopupMenu(view, user)
+                    } else {
+                        Toast.makeText(requireContext(), getString(R.string.stopPokey), Toast.LENGTH_SHORT).show()
+                    }
                 }
 
                 loadAvatar(user.avatar.toString(), imageView)
@@ -117,6 +134,12 @@ class HomeFragment : Fragment() {
                 requireContext().theme.resolveAttribute(android.R.attr.colorButtonNormal, typedValue, true)
                 binding.serviceStart.text = getString(R.string.stop)
                 updateAddAccountButton(R.color.grey)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val dao = AppDatabase.getDatabase(requireContext(), "common").applicationDao()
+                    for (user in dao.getUsers()) {
+                        loadUser(user)
+                    }
+                }
             } else {
                 val typedValue = TypedValue()
                 requireContext().theme.resolveAttribute(android.R.attr.colorPrimary, typedValue, true)
@@ -133,38 +156,40 @@ class HomeFragment : Fragment() {
     }
 
     private fun showAddAccountDialog() {
-        if (Pokey.isEnabled.value == true) return
+        if (Pokey.isEnabled.value == true) {
+            Toast.makeText(requireContext(), getString(R.string.stopPokey), Toast.LENGTH_SHORT).show()
+        } else {
+            val inflater = LayoutInflater.from(requireContext())
+            val dialogView: View = inflater.inflate(R.layout.fragment_add_account, null)
 
-        val inflater = LayoutInflater.from(requireContext())
-        val dialogView: View = inflater.inflate(R.layout.fragment_add_account, null)
+            val builder = AlertDialog.Builder(requireContext())
+            builder.setView(dialogView)
+            val dialog = builder.create()
 
-        val builder = AlertDialog.Builder(requireContext())
-        builder.setView(dialogView)
-        val dialog = builder.create()
+            val npubInput: EditText = dialogView.findViewById(R.id.npub_input)
+            val buttonAmber: Button = dialogView.findViewById(R.id.amber)
+            val buttonSubmitAccount: Button = dialogView.findViewById(R.id.submitAccount)
 
-        val npubInput: EditText = dialogView.findViewById(R.id.npub_input)
-        val buttonAmber: Button = dialogView.findViewById(R.id.amber)
-        val buttonSubmitAccount: Button = dialogView.findViewById(R.id.submitAccount)
-
-        buttonAmber.setOnClickListener {
-            ExternalSigner.savePubKey {
-                dialog.hide()
-                createUser(it, 1)
+            buttonAmber.setOnClickListener {
+                ExternalSigner.savePubKey {
+                    dialog.hide()
+                    createUser(it, 1)
+                }
             }
-        }
 
-        buttonSubmitAccount.setOnClickListener {
-            val hexPub = parseNpubInput(npubInput.text.toString())
-            if (hexPub?.isNotEmpty() == true) {
-                npubInput.error = null
-                dialog.hide()
-                createUser(hexPub, 0)
-            } else {
-                npubInput.error = getString(R.string.invalid_npub)
+            buttonSubmitAccount.setOnClickListener {
+                val hexPub = parseNpubInput(npubInput.text.toString())
+                if (hexPub?.isNotEmpty() == true) {
+                    npubInput.error = null
+                    dialog.hide()
+                    createUser(hexPub, 0)
+                } else {
+                    npubInput.error = getString(R.string.invalid_npub)
+                }
             }
-        }
 
-        dialog.show()
+            dialog.show()
+        }
     }
 
     private fun parseNpubInput(value: String): String? {
@@ -197,20 +222,21 @@ class HomeFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             val dao = context?.let { AppDatabase.getDatabase(it, "common").applicationDao() }
-            dao?.insertUser(
-                UserEntity(
-                    id = 0,
-                    hexPub = hexPukKey.toString(),
-                    name = "",
-                    avatar = "",
-                    createdAt = 0,
-                    signer = signer,
-                ),
+            val user = UserEntity(
+                id = 0,
+                hexPub = hexPukKey.toString(),
+                name = "",
+                avatar = "",
+                createdAt = 0,
+                signer = signer,
             )
+            dao?.insertUser(user)
 
             if (EncryptedStorage.inboxPubKey.value?.isNotEmpty() != true) EncryptedStorage.updateInboxPubKey(hexPukKey.toString())
 
-            viewModel.loadAccouts()
+            viewModel.loadAccounts()
+
+            loadUser(user)
         }
     }
 
@@ -219,5 +245,45 @@ class HomeFragment : Fragment() {
             ContextCompat.getColor(requireContext(), color),
             PorterDuff.Mode.SRC_IN,
         )
+    }
+
+    private fun showUserPopupMenu(view: View, user: UserEntity) {
+        val popupMenu = PopupMenu(requireContext(), view)
+        popupMenu.menuInflater.inflate(R.menu.user_popup_menu, popupMenu.menu)
+        popupMenu.setOnMenuItemClickListener { item: MenuItem ->
+            when (item.itemId) {
+                R.id.menu_delete -> {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val dao = context?.let { AppDatabase.getDatabase(it, "common").applicationDao() }
+                        dao?.deleteUser(user)
+                        if (EncryptedStorage.inboxPubKey.value == user.hexPub) {
+                            var nextUser = dao?.getUsers()?.first()
+                            if (nextUser != null) {
+                                EncryptedStorage.updateInboxPubKey(nextUser.hexPub)
+                            }
+                        }
+                        viewModel.loadAccounts()
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+
+        popupMenu.show()
+    }
+
+    private fun loadUser(user: UserEntity) {
+        NostrClient.getNip05Content(user.hexPub, onResponse = {
+            try {
+                user.name = it?.getString("name").toString()
+                user.avatar = it?.getString("picture").toString()
+                CoroutineScope(Dispatchers.IO).launch {
+                    val dao = context?.let { AppDatabase.getDatabase(it, "common").applicationDao() }
+                    dao?.updateUser(user)
+                    viewModel.loadAccounts()
+                }
+            } catch (e: JSONException) { }
+        })
     }
 }

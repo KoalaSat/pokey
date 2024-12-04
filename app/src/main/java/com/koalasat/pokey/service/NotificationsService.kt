@@ -62,17 +62,12 @@ class NotificationsService : Service() {
                 Log.d("Pokey", "Relay on Auth: ${relay.url} : $challenge")
 
                 CoroutineScope(Dispatchers.IO).launch {
-                    val db = AppDatabase.getDatabase(this@NotificationsService, "common")
-                    val relays = db.applicationDao().getRelaysForSignerUsers()
-
-                    val authRelay = relays.find { it.url == relay.url }
-
                     val currentTime = TimeUtils.now()
                     val fiveMinutesInMillis = 5 * 60 * 1000
                     val existingTimestamp = authRelays[relay.url]
-
-                    if (authRelay != null && (existingTimestamp == null || (currentTime - existingTimestamp > fiveMinutesInMillis))) {
-                        ExternalSigner.auth(authRelay.hexPub, relay.url, challenge) { result ->
+                    val hexPub = EncryptedStorage.inboxPubKey.value
+                    if (hexPub?.isNotEmpty() == true && (existingTimestamp == null || (currentTime - existingTimestamp > fiveMinutesInMillis))) {
+                        ExternalSigner.auth(hexPub, relay.url, challenge) { result ->
                             Log.d("Pokey", "Relay on Auth response: ${relay.url} : ${result.toJson()}")
                             relay.send(result)
                             authRelays.putIfAbsent(relay.url, TimeUtils.now())

@@ -9,7 +9,9 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
+import android.widget.Button
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -22,6 +24,8 @@ import com.koalasat.pokey.database.RelayEntity
 import com.koalasat.pokey.databinding.FragmentRelaysBinding
 import com.koalasat.pokey.models.EncryptedStorage
 import com.koalasat.pokey.models.NostrClient
+import com.vitorpamplona.quartz.encoders.Hex
+import com.vitorpamplona.quartz.encoders.toNpub
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -52,13 +56,29 @@ class RelaysFragment : Fragment() {
 
         val root: View = binding.root
 
-        val textView: TextView = binding.titleRelays
         Pokey.isEnabled.observe(viewLifecycleOwner) {
-            textView.visibility = if (it) {
-                View.GONE
+            if (it) {
+                binding.activeAccount.visibility = View.VISIBLE
+                CoroutineScope(Dispatchers.IO).launch {
+                    val dao = AppDatabase.getDatabase(requireContext(), "common").applicationDao()
+                    val activeUser = dao.getUser(EncryptedStorage.inboxPubKey.value.toString())
+                    if (activeUser != null) {
+                        binding.activeAccount.text = if (activeUser.name?.isNotEmpty() == true) {
+                            activeUser.name
+                        } else {
+                            Hex.decode(activeUser.hexPub).toNpub().substring(0, 10) + "..."
+                        }
+                    }
+                }
+                binding.titleRelays.visibility = View.GONE
             } else {
-                View.VISIBLE
+                binding.activeAccount.visibility = View.GONE
+                binding.titleRelays.visibility = View.VISIBLE
             }
+        }
+
+        binding.activeAccount.setOnClickListener {
+            showAddAccountDialog()
         }
 
         binding.addPublicRelayUrl.addTextChangedListener(object : TextWatcher {
@@ -117,7 +137,6 @@ class RelaysFragment : Fragment() {
                     relaysViewModel.newPrivateRelay.value?.let { it1 -> Log.d("Pokey", it1) }
                     insertRelay(relaysViewModel.newPrivateRelay.value!!, 10050)
                     binding.addPrivateRelayUrl.setText("")
-                    privateRelaysView.adapter?.notifyDataSetChanged()
                 }
             } else {
                 binding.addPrivateRelayUrl.error = getString(R.string.invalid_uri)
@@ -139,7 +158,6 @@ class RelaysFragment : Fragment() {
                 binding.privateRelaysLoading.visibility = View.GONE
             }
             loadRelays()
-            privateRelaysView.adapter?.notifyDataSetChanged()
         }
 
         publicRelaysView = root.findViewById(R.id.public_relays)
@@ -187,6 +205,7 @@ class RelaysFragment : Fragment() {
                 privateRelayAdapter = RelayListAdapter(privateList.filter { it.read == 1 }.toMutableList())
                 privateRelaysView.adapter = privateRelayAdapter
             }
+            privateRelaysView.adapter?.notifyDataSetChanged()
         }
     }
 
@@ -216,5 +235,54 @@ class RelaysFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun showAddAccountDialog() {
+        val inflater = LayoutInflater.from(requireContext())
+        val dialogView: View = inflater.inflate(R.layout.fragment_primary_account, null)
+
+        val builder = AlertDialog.Builder(requireContext())
+        builder.setView(dialogView)
+        val dialog = builder.create()
+
+        val buttonSubmitAccount: Button = dialogView.findViewById(R.id.submit_account)
+
+        val accountListView = dialogView.findViewById<RadioGroup>(R.id.accounts_list)
+        CoroutineScope(Dispatchers.IO).launch {
+            val dao = AppDatabase.getDatabase(requireContext(), "common").applicationDao()
+            for (user in dao.getUsers()) {
+                val radioButton = RadioButton(requireContext()).apply {
+                    text = if (user.name?.isNotEmpty() == true) {
+                        user.name
+                    } else {
+                        var nPub = Hex.decode(user.hexPub).toNpub()
+                        nPub.substring(0, 25) + "..."
+                    }
+                    id = user.hexPub.hashCode()
+                    tag = user.hexPub
+                }
+                if (user.hexPub == EncryptedStorage.inboxPubKey.value) {
+                    radioButton.isChecked = true
+                }
+                accountListView.addView(radioButton)
+            }
+        }
+
+        buttonSubmitAccount.setOnClickListener {
+            dialog.hide()
+            val checkedId = accountListView.checkedRadioButtonId
+            val hexPub = accountListView.findViewById<RadioButton>(checkedId).tag
+
+            NostrClient.stop()
+            EncryptedStorage.updateInboxPubKey(hexPub.toString())
+            CoroutineScope(Dispatchers.IO).launch {
+                NostrClient.start(requireContext())
+                reconnectRelays(publicRelaysKind)
+                reconnectRelays(privateRelaysKind)
+                loadRelays()
+            }
+        }
+
+        dialog.show()
     }
 }

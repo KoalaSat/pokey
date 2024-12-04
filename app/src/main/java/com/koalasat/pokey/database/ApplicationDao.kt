@@ -1,6 +1,7 @@
 package com.koalasat.pokey.database
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -20,8 +21,8 @@ interface ApplicationDao {
     @Query("SELECT EXISTS (SELECT 1 FROM relay WHERE url = :url AND kind = :kind AND hexPub = :hexPub)")
     fun existsRelay(url: String, kind: Int, hexPub: String): Int
 
-    @Query("SELECT * FROM relay WHERE read = 1")
-    fun getReadRelays(): List<RelayEntity>
+    @Query("SELECT * FROM relay WHERE read = 1 AND hexPub = :hexPub")
+    fun getReadRelays(hexPub: String): List<RelayEntity>
 
     @Query("SELECT * FROM relay where kind = :kind AND hexPub = :hexPub")
     fun getRelaysByKind(kind: Int, hexPub: String): List<RelayEntity>
@@ -64,6 +65,9 @@ interface ApplicationDao {
 
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun updateUser(userEntity: UserEntity): Int
+
+    @Delete
+    fun deleteUser(userEntity: UserEntity): Int
 
     @Query("SELECT * FROM user WHERE hexPub = :hexPub LIMIT 1")
     fun getUser(hexPub: String): UserEntity?

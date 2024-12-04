@@ -80,7 +80,7 @@ object NostrClient {
     fun deleteRelay(hexPubKey: String, context: Context, url: String, kind: Int) {
         val db = AppDatabase.getDatabase(context, "common")
         db.applicationDao().deleteRelayByUrl(url, kind, hexPubKey)
-        val relayStillExists = db.applicationDao().getReadRelays().any { it.url == url }
+        val relayStillExists = db.applicationDao().getReadRelays(hexPubKey).any { it.url == url }
         val relay = RelayPool.getRelay(url)
         if (!relayStillExists && relay != null) {
             RelayPool.removeRelay(relay)
@@ -357,15 +357,9 @@ object NostrClient {
     }
 
     private fun connectRelays(context: Context) {
+        val hexPubKey = EncryptedStorage.inboxPubKey.value.toString()
         val db = AppDatabase.getDatabase(context, "common")
-        val users = db.applicationDao().getUsers()
-        var relays = emptyList<RelayEntity>()
-        users.forEach {
-            val db = AppDatabase.getDatabase(context, "common")
-            var userRlays = db.applicationDao().getReadRelays()
-            relays = relays + userRlays
-        }
-
+        var relays = db.applicationDao().getReadRelays(hexPubKey)
         if (relays.isEmpty()) {
             relays = defaultRelayUrls.map { RelayEntity(id = 0, url = it, kind = 0, createdAt = 0, read = 1, write = 1, hexPub = "") }
         }

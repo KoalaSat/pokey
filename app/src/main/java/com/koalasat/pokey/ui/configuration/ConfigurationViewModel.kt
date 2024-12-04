@@ -46,13 +46,9 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
         EncryptedStorage.broadcast.observeForever { value ->
             _broadcast.postValue(value)
         }
-        CoroutineScope(Dispatchers.IO).launch {
-            val dao = AppDatabase.getDatabase(appContext, "common").applicationDao()
-            val activeUsers = dao.getUsers()
-            if (activeUsers.isNotEmpty()) {
-                _userHexPubKey.postValue(activeUsers.first().hexPub)
-                refreshData()
-            }
+
+        _userHexPubKey.observeForever {
+            refreshData()
         }
     }
 
@@ -145,6 +141,10 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
+    fun updateUserHexPubKey(value: String) {
+        _userHexPubKey.postValue(value)
+    }
+
     fun refreshData() {
         CoroutineScope(Dispatchers.IO).launch {
             val dao = AppDatabase.getDatabase(appContext, "common").applicationDao()
@@ -154,7 +154,7 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
                 mainHandler.post {
                     _newReplies.postValue(activeUser.notifyReplies == 1)
                     _newZaps.postValue(activeUser.notifyZaps == 1)
-                    _newQuotes.postValue(activeUser.notifyZaps == 1)
+                    _newQuotes.postValue(activeUser.notifyQuotes == 1)
                     _newReactions.postValue(activeUser.notifyReactions == 1)
                     _newPrivate.postValue(activeUser.notifyPrivate == 1)
                     _newMentions.postValue(activeUser.notifyMentions == 1)
