@@ -25,7 +25,7 @@ class RelayListAdapter(
         fun bind(relayEntity: RelayEntity, position: Int) {
             deleteIcon.setOnClickListener {
                 CoroutineScope(Dispatchers.IO).launch {
-                    NostrClient.deleteRelay(itemView.context, relayEntity.url, relayEntity.kind)
+                    NostrClient.deleteRelay(relayEntity.hexPub, itemView.context, relayEntity.url, relayEntity.kind)
                     withContext(Dispatchers.Main) {
                         adapter.removeItem(position)
                     }

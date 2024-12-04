@@ -22,8 +22,6 @@ class ConfigurationFragment : Fragment() {
         val viewModel =
             ViewModelProvider(this)[ConfigurationViewModel::class.java]
 
-        viewModel.refreshData()
-
         _binding = FragmentNotificationsBinding.inflate(inflater, container, false)
         val root: View = binding.root
 

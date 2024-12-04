@@ -5,25 +5,14 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.os.Handler
-import android.os.Looper
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.koalasat.pokey.database.AppDatabase
-import com.koalasat.pokey.database.UserEntity
-import com.koalasat.pokey.models.EncryptedStorage
 import com.koalasat.pokey.models.NostrClient
-import com.koalasat.pokey.models.NostrClient.getNip05Content
 import com.koalasat.pokey.service.NotificationsService
-import com.vitorpamplona.quartz.encoders.Nip19Bech32
-import com.vitorpamplona.quartz.encoders.Nip19Bech32.uriToRoute
-import kotlin.String
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import org.json.JSONException
 
 class Pokey : Application() {
     private val applicationIOScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -43,8 +32,6 @@ class Pokey : Application() {
     }
 
     fun startService() {
-        createUser(this@Pokey)
-
         this.startForegroundService(
             Intent(
                 this,
@@ -63,18 +50,6 @@ class Pokey : Application() {
 
     fun contentResolverFn(): ContentResolver = contentResolver
 
-    fun getHexKey(): String {
-        val pubKey = EncryptedStorage.pubKey.value
-        var hexKey = ""
-        val parseReturn = uriToRoute(pubKey)
-        when (val parsed = parseReturn?.entity) {
-            is Nip19Bech32.NPub -> {
-                hexKey = parsed.hex
-            }
-        }
-        return hexKey
-    }
-
     companion object {
         private val _isEnabled = MutableLiveData(false)
         val isEnabled: LiveData<Boolean> get() = _isEnabled
@@ -92,7 +67,7 @@ class Pokey : Application() {
             }
 
         fun updateIsEnabled(value: Boolean) {
-            _isEnabled.value = value
+            _isEnabled.postValue(value)
         }
 
         fun updateLoadingPublicRelays(value: Boolean) {
@@ -114,44 +89,6 @@ class Pokey : Application() {
             editor.putBoolean("foreground_service_enabled", value)
             editor.apply()
             updateIsEnabled(value)
-        }
-
-        private fun createUser(context: Context) {
-            CoroutineScope(Dispatchers.IO).launch {
-                val hexKey = getInstance().getHexKey()
-                val dao = AppDatabase.getDatabase(context, hexKey).applicationDao()
-                val existingUser = dao.getUser(hexKey)
-                if (existingUser == null) {
-                    var newUser = UserEntity(
-                        id = 0,
-                        hexPub = hexKey,
-                        name = null,
-                        avatar = null,
-                        createdAt = null,
-                    )
-                    dao.insertUser(newUser)
-                    getNip05Content(
-                        hexKey,
-                        onResponse = {
-                            try {
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    newUser.name = it?.getString("name")
-                                    newUser.avatar = it?.getString("picture")
-                                    newUser.createdAt = it?.getLong("created_at")
-                                    dao.updateUser(newUser)
-                                    if (newUser.avatar?.isNotEmpty() == true) {
-                                        val handler = Handler(Looper.getMainLooper())
-                                        handler.post {
-                                            EncryptedStorage.updateAvatar(newUser.avatar.toString())
-                                        }
-                                    }
-                                }
-                            } catch (e: JSONException) {
-                            }
-                        },
-                    )
-                }
-            }
         }
     }
 }

@@ -17,7 +17,6 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.koalasat.pokey.Connectivity
-import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.R
 import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.database.NotificationEntity
@@ -55,19 +54,29 @@ class NotificationsService : Service() {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val processedEvents = ConcurrentHashMap<String, Boolean>()
     private val authRelays = ConcurrentHashMap<String, Long>()
+    private var hexPubKeysList = emptyList<String>()
 
     private val clientNotificationListener =
         object : Client.Listener {
             override fun onAuth(relay: Relay, challenge: String) {
                 Log.d("Pokey", "Relay on Auth: ${relay.url} : $challenge")
-                val currentTime = TimeUtils.now()
-                val fiveMinutesInMillis = 5 * 60 * 1000
-                val existingTimestamp = authRelays[relay.url]
-                if (existingTimestamp == null || (currentTime - existingTimestamp > fiveMinutesInMillis)) {
-                    ExternalSigner.auth(relay.url, challenge) { result ->
-                        Log.d("Pokey", "Relay on Auth response: ${relay.url} : ${result.toJson()}")
-                        relay.send(result)
-                        authRelays.putIfAbsent(relay.url, TimeUtils.now())
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    val db = AppDatabase.getDatabase(this@NotificationsService, "common")
+                    val relays = db.applicationDao().getRelaysForSignerUsers()
+
+                    val authRelay = relays.find { it.url == relay.url }
+
+                    val currentTime = TimeUtils.now()
+                    val fiveMinutesInMillis = 5 * 60 * 1000
+                    val existingTimestamp = authRelays[relay.url]
+
+                    if (authRelay != null && (existingTimestamp == null || (currentTime - existingTimestamp > fiveMinutesInMillis))) {
+                        ExternalSigner.auth(authRelay.hexPub, relay.url, challenge) { result ->
+                            Log.d("Pokey", "Relay on Auth response: ${relay.url} : ${result.toJson()}")
+                            relay.send(result)
+                            authRelays.putIfAbsent(relay.url, TimeUtils.now())
+                        }
                     }
                 }
             }
@@ -93,8 +102,9 @@ class NotificationsService : Service() {
                 if (processedEvents.putIfAbsent(event.id, true) == null) {
                     Log.d("Pokey", "Relay Event: ${relay.url} - $subscriptionId - ${event.toJson()}")
 
-                    val hexKey = Pokey.getInstance().getHexKey()
-                    if (event.pubKey == hexKey || !event.taggedUsers().contains(hexKey)) return
+                    val anyUserMention = event.taggedUsers().any { it in hexPubKeysList }
+
+                    if (!anyUserMention) return
 
                     createNoteNotification(event)
 
@@ -206,12 +216,12 @@ class NotificationsService : Service() {
     }
 
     private fun startSubscription() {
-        val hexKey = Pokey.getInstance().getHexKey()
-        if (hexKey.isEmpty()) return
-
         if (!Client.isSubscribed(clientNotificationListener)) Client.subscribe(clientNotificationListener)
 
         CoroutineScope(Dispatchers.IO).launch {
+            val db = AppDatabase.getDatabase(this@NotificationsService, "common")
+            val users = db.applicationDao().getUsers()
+            hexPubKeysList = users.map { it.hexPub }
             NostrClient.start(this@NotificationsService)
         }
     }
@@ -256,23 +266,23 @@ class NotificationsService : Service() {
 
     private fun createNoteNotification(event: Event) {
         CoroutineScope(Dispatchers.IO).launch {
-            val userHexPub = Pokey.getInstance().getHexKey()
-            if (!event.taggedUsers().contains(userHexPub)) return@launch
+            val userHexPub = event.taggedUsers().find { it in hexPubKeysList }
+            if (userHexPub?.isNotEmpty() != true) return@launch
 
-            val db = AppDatabase.getDatabase(this@NotificationsService, userHexPub)
+            val db = AppDatabase.getDatabase(this@NotificationsService, "common")
             val existsEvent = db.applicationDao().existsNotification(event.id)
             if (existsEvent > 0) return@launch
 
             db.applicationDao().insertNotification(NotificationEntity(0, event.id, event.createdAt))
 
-            if (event.firstTaggedEvent()?.isNotEmpty() == true && db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString()) == 1) return@launch
+            if (event.firstTaggedEvent()?.isNotEmpty() == true && db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString(), userHexPub) == 1) return@launch
             if (!event.hasVerifiedSignature()) return@launch
 
             val user = db.applicationDao().getUser(userHexPub)
 
             var title = ""
             var text = ""
-            val pubKey = EncryptedStorage.pubKey
+            val pubKey = userHexPub
             var nip32Bech32 = ""
             var avatar = ""
 
@@ -356,7 +366,7 @@ class NotificationsService : Service() {
                 } catch (e: JSONException) { }
 
                 if (avatar.isEmpty()) {
-                    displayNoteNotification(title, text, nip32Bech32, null, event)
+                    displayNoteNotification(userHexPub, title, text, nip32Bech32, null, event)
                 } else {
                     val handler = Handler(Looper.getMainLooper())
                     handler.post {
@@ -367,11 +377,11 @@ class NotificationsService : Service() {
                             .transform(CircleTransform())
                             .into(object : com.squareup.picasso.Target {
                                 override fun onBitmapLoaded(bitmap: Bitmap, from: Picasso.LoadedFrom) {
-                                    displayNoteNotification(title, text, nip32Bech32, bitmap, event)
+                                    displayNoteNotification(userHexPub, title, text, nip32Bech32, bitmap, event)
                                 }
 
                                 override fun onBitmapFailed(e: Exception, errorDrawable: Drawable?) {
-                                    displayNoteNotification(title, text, nip32Bech32, null, event)
+                                    displayNoteNotification(userHexPub, title, text, nip32Bech32, null, event)
                                 }
 
                                 override fun onPrepareLoad(placeHolderDrawable: Drawable?) {
@@ -384,7 +394,7 @@ class NotificationsService : Service() {
         }
     }
 
-    private fun displayNoteNotification(title: String, text: String, authorBech32: String, avatar: Bitmap?, event: Event) {
+    private fun displayNoteNotification(hexPub: String, title: String, text: String, authorBech32: String, avatar: Bitmap?, event: Event) {
         val deepLinkIntent = Intent(Intent.ACTION_VIEW).apply {
             data = Uri.parse("nostr:$authorBech32")
         }
@@ -401,6 +411,7 @@ class NotificationsService : Service() {
             action = "MUTE"
             putExtra("rootEventId", event.firstTaggedEvent())
             putExtra("notificationId", event.id.hashCode())
+            putExtra("hexPub", hexPub)
         }
         val pendingIntentMute = PendingIntent.getBroadcast(this, event.id.hashCode(), intentAction1, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val builder: NotificationCompat.Builder =

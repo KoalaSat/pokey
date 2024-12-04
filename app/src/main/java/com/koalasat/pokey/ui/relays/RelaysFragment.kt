@@ -20,6 +20,7 @@ import com.koalasat.pokey.R
 import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.database.RelayEntity
 import com.koalasat.pokey.databinding.FragmentRelaysBinding
+import com.koalasat.pokey.models.EncryptedStorage
 import com.koalasat.pokey.models.NostrClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -83,7 +84,7 @@ class RelaysFragment : Fragment() {
         }
         binding.publishPublicRelay.setOnClickListener {
             CoroutineScope(Dispatchers.IO).launch {
-                context?.let { it1 -> NostrClient.publishPublicRelays(it1) }
+                context?.let { it1 -> NostrClient.publishPublicRelays(EncryptedStorage.inboxPubKey.value.toString(), it1) }
             }
         }
         binding.reloadPublicRelays.setOnClickListener {
@@ -124,7 +125,7 @@ class RelaysFragment : Fragment() {
         }
         binding.publishPrivateRelay.setOnClickListener {
             CoroutineScope(Dispatchers.IO).launch {
-                context?.let { it1 -> NostrClient.publishPrivateRelays(it1) }
+                context?.let { it1 -> NostrClient.publishPrivateRelays(EncryptedStorage.inboxPubKey.value.toString(), it1) }
             }
         }
         binding.reloadPrivateRelay.setOnClickListener {
@@ -159,7 +160,7 @@ class RelaysFragment : Fragment() {
     private fun insertRelay(url: String, kind: Int) {
         lifecycleScope.launch {
             CoroutineScope(Dispatchers.IO).launch {
-                context?.let { NostrClient.addRelay(it, url, kind) }
+                context?.let { NostrClient.addRelay(EncryptedStorage.inboxPubKey.value.toString(), it, url, kind) }
                 loadRelays()
             }
         }
@@ -168,21 +169,21 @@ class RelaysFragment : Fragment() {
     private fun reconnectRelays(kind: Int) {
         lifecycleScope.launch {
             CoroutineScope(Dispatchers.IO).launch {
-                context?.let { NostrClient.reconnectInbox(it, kind) }
+                context?.let { NostrClient.reconnectInbox(EncryptedStorage.inboxPubKey.value.toString(), it, kind) }
             }
         }
     }
 
     private fun loadRelays() {
         lifecycleScope.launch {
-            val hexKey = Pokey.getInstance().getHexKey()
-            val dao = context?.let { AppDatabase.getDatabase(it, hexKey).applicationDao() }
+            val hexKey = EncryptedStorage.inboxPubKey.value.toString()
+            val dao = context?.let { AppDatabase.getDatabase(it, "common").applicationDao() }
             if (dao != null) {
-                publicList = withContext(Dispatchers.IO) { dao.getRelaysByKind(publicRelaysKind) }
+                publicList = withContext(Dispatchers.IO) { dao.getRelaysByKind(publicRelaysKind, hexKey) }
                 publicRelayAdapter = RelayListAdapter(publicList.filter { it.read == 1 }.toMutableList())
                 publicRelaysView.adapter = publicRelayAdapter
 
-                privateList = withContext(Dispatchers.IO) { dao.getRelaysByKind(privateRelaysKind) }
+                privateList = withContext(Dispatchers.IO) { dao.getRelaysByKind(privateRelaysKind, hexKey) }
                 privateRelayAdapter = RelayListAdapter(privateList.filter { it.read == 1 }.toMutableList())
                 privateRelaysView.adapter = privateRelayAdapter
             }
@@ -191,10 +192,10 @@ class RelaysFragment : Fragment() {
 
     private fun showRelayDialog(kind: Int, confirmation: () -> Unit) {
         lifecycleScope.launch {
-            val hexKey = Pokey.getInstance().getHexKey()
-            val dao = context?.let { AppDatabase.getDatabase(it, hexKey).applicationDao() }
+            val hexKey = EncryptedStorage.inboxPubKey.value.toString()
+            val dao = context?.let { AppDatabase.getDatabase(it, "common").applicationDao() }
             if (dao != null) {
-                val relayList = withContext(Dispatchers.IO) { dao.getRelaysByKind(kind) }
+                val relayList = withContext(Dispatchers.IO) { dao.getRelaysByKind(kind, hexKey) }
                 if (relayList.size > 2) {
                     val builder = AlertDialog.Builder(context)
                     builder.setTitle(R.string.recommend_relay_title)

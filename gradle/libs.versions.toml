@@ -22,6 +22,7 @@ roomKtx = "2.6.1"
 ksp = "2.0.20-1.0.24"
 ktlint = "12.1.1"
 picasso = "2.8"
+gridlayout = "1.0.0"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx" }
@@ -48,6 +49,7 @@ security-crypto-ktx = { module = "androidx.security:security-crypto-ktx", versio
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomKtx" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomKtx" }
 picasso = { module = "com.squareup.picasso:picasso", version.ref = "picasso" }
+androidx-gridlayout = { group = "androidx.gridlayout", name = "gridlayout", version.ref = "gridlayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

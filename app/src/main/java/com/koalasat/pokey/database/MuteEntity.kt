@@ -19,5 +19,6 @@ data class MuteEntity(
     val kind: Int,
     val private: Int,
     val tagType: String,
+    val hexPub: String,
     val entityId: String,
 )

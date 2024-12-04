@@ -20,6 +20,8 @@ data class UserEntity(
     var name: String?,
     var avatar: String?,
     var createdAt: Long?,
+    var signer: Int = 0,
+    var account: Int = 0,
     var notifyReplies: Int = 1,
     var notifyPrivate: Int = 1,
     var notifyZaps: Int = 1,

@@ -77,9 +77,9 @@ object NostrClient {
         return RelayPool.getRelay(url)
     }
 
-    fun deleteRelay(context: Context, url: String, kind: Int) {
-        val db = AppDatabase.getDatabase(context, Pokey.getInstance().getHexKey())
-        db.applicationDao().deleteRelayByUrl(url, kind)
+    fun deleteRelay(hexPubKey: String, context: Context, url: String, kind: Int) {
+        val db = AppDatabase.getDatabase(context, "common")
+        db.applicationDao().deleteRelayByUrl(url, kind, hexPubKey)
         val relayStillExists = db.applicationDao().getReadRelays().any { it.url == url }
         val relay = RelayPool.getRelay(url)
         if (!relayStillExists && relay != null) {
@@ -87,12 +87,12 @@ object NostrClient {
         }
     }
 
-    fun addRelay(context: Context, url: String, kind: Int) {
-        val db = AppDatabase.getDatabase(context, Pokey.getInstance().getHexKey())
-        val existsRelay = db.applicationDao().existsRelay(url, kind)
+    fun addRelay(hexPubKey: String, context: Context, url: String, kind: Int) {
+        val db = AppDatabase.getDatabase(context, "common")
+        val existsRelay = db.applicationDao().existsRelay(url, kind, hexPubKey)
 
         if (existsRelay < 1) {
-            val entity = RelayEntity(id = 0, url, kind = kind, createdAt = 0, read = 1, write = 1)
+            val entity = RelayEntity(id = 0, url, kind = kind, createdAt = 0, read = 1, write = 1, hexPub = hexPubKey)
             db.applicationDao().insertRelay(entity)
 
             val relay = RelayPool.getRelay(url)
@@ -113,12 +113,12 @@ object NostrClient {
     }
 
     private fun subscribeToInbox(context: Context) {
-        val hexKey = Pokey.getInstance().getHexKey()
-        if (hexKey.isEmpty()) return
-
-        val db = AppDatabase.getDatabase(context, Pokey.getInstance().getHexKey())
+        val db = AppDatabase.getDatabase(context, "common")
         var latestNotification = db.applicationDao().getLatestNotification()
         if (latestNotification == null) latestNotification = Instant.now().toEpochMilli() / 1000
+
+        val users = db.applicationDao().getUsers()
+        val authors = users.map { it.hexPub }
 
         Client.sendFilter(
             subscriptionNotificationId,
@@ -127,7 +127,7 @@ object NostrClient {
                     types = COMMON_FEED_TYPES,
                     filter = SincePerRelayFilter(
                         kinds = listOf(1, 4, 6, 7, 1059, 9735),
-                        tags = mapOf("p" to listOf(hexKey)),
+                        tags = mapOf("p" to authors),
                         since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification) },
                     ),
                 ),
@@ -135,20 +135,20 @@ object NostrClient {
         )
     }
 
-    fun reconnectInbox(context: Context, kind: Int) {
-        val db = AppDatabase.getDatabase(context, Pokey.getInstance().getHexKey())
-        db.applicationDao().deleteRelaysByKind(kind)
+    fun reconnectInbox(hexPubKey: String, context: Context, kind: Int) {
+        val db = AppDatabase.getDatabase(context, "common")
+        db.applicationDao().deleteRelaysByKind(kind, hexPubKey)
         Client.close(subscriptionInboxId)
         getInboxLists(context)
     }
 
-    fun publishPrivateRelays(context: Context) {
+    fun publishPrivateRelays(hexPubKey: String, context: Context) {
         val kind = 10050
 
-        val db = AppDatabase.getDatabase(context, Pokey.getInstance().getHexKey())
-        val privateList = db.applicationDao().getRelaysByKind(kind)
+        val db = AppDatabase.getDatabase(context, "common")
+        val privateList = db.applicationDao().getRelaysByKind(kind, hexPubKey)
 
-        val pubKey = Pokey.getInstance().getHexKey()
+        val pubKey = hexPubKey
         val createdAt = TimeUtils.now()
         val content = ""
         val tags = privateList.map { arrayOf("relay", it.url) }.toTypedArray()
@@ -178,13 +178,13 @@ object NostrClient {
         }
     }
 
-    fun publishPublicRelays(context: Context) {
+    fun publishPublicRelays(hexPubKey: String, context: Context) {
         val kind = 10002
 
-        val db = AppDatabase.getDatabase(context, Pokey.getInstance().getHexKey())
-        val publicList = db.applicationDao().getRelaysByKind(kind)
+        val db = AppDatabase.getDatabase(context, "common")
+        val publicList = db.applicationDao().getRelaysByKind(kind, hexPubKey)
 
-        val pubKey = Pokey.getInstance().getHexKey()
+        val pubKey = hexPubKey
         val createdAt = TimeUtils.now()
         val content = ""
         val tags = publicList.map {
@@ -222,13 +222,13 @@ object NostrClient {
         }
     }
 
-    fun publishPublicMute(context: Context) {
+    fun publishPublicMute(hexPubKey: String, context: Context) {
         val kind = 10000
 
-        val db = AppDatabase.getDatabase(context, Pokey.getInstance().getHexKey())
-        val publicMuteList = db.applicationDao().getMuteList(kind)
+        val db = AppDatabase.getDatabase(context, "common")
+        val publicMuteList = db.applicationDao().getMuteList(kind, hexPubKey)
 
-        val pubKey = Pokey.getInstance().getHexKey()
+        val pubKey = hexPubKey
         val createdAt = TimeUtils.now()
         val content = getPrivateMuteList(context)
         val tags = publicMuteList.map {
@@ -304,8 +304,9 @@ object NostrClient {
     }
 
     private fun getInboxLists(context: Context) {
-        val hexKey = Pokey.getInstance().getHexKey()
-        if (hexKey.isEmpty()) return
+        val db = AppDatabase.getDatabase(context, "common")
+        val users = db.applicationDao().getUsers()
+        val authors = users.map { it.hexPub }
 
         Client.sendFilterAndStopOnFirstResponse(
             subscriptionReadId,
@@ -314,7 +315,7 @@ object NostrClient {
                     types = EVENT_FINDER_TYPES,
                     filter = SincePerRelayFilter(
                         kinds = listOf(10002),
-                        authors = listOf(hexKey),
+                        authors = authors,
                     ),
                 ),
             ),
@@ -327,7 +328,7 @@ object NostrClient {
                     types = EVENT_FINDER_TYPES,
                     filter = SincePerRelayFilter(
                         kinds = listOf(10050),
-                        authors = listOf(hexKey),
+                        authors = authors,
                     ),
                 ),
             ),
@@ -336,8 +337,9 @@ object NostrClient {
     }
 
     private fun getMuteList(context: Context) {
-        val hexKey = Pokey.getInstance().getHexKey()
-        if (hexKey.isEmpty()) return
+        val db = AppDatabase.getDatabase(context, "common")
+        val users = db.applicationDao().getUsers()
+        val authors = users.map { it.hexPub }
 
         Client.sendFilterAndStopOnFirstResponse(
             subscriptionMuteId,
@@ -346,7 +348,7 @@ object NostrClient {
                     types = EVENT_FINDER_TYPES,
                     filter = SincePerRelayFilter(
                         kinds = listOf(10000),
-                        authors = listOf(hexKey),
+                        authors = authors,
                     ),
                 ),
             ),
@@ -355,10 +357,17 @@ object NostrClient {
     }
 
     private fun connectRelays(context: Context) {
-        val db = AppDatabase.getDatabase(context, Pokey.getInstance().getHexKey())
-        var relays = db.applicationDao().getReadRelays()
+        val db = AppDatabase.getDatabase(context, "common")
+        val users = db.applicationDao().getUsers()
+        var relays = emptyList<RelayEntity>()
+        users.forEach {
+            val db = AppDatabase.getDatabase(context, "common")
+            var userRlays = db.applicationDao().getReadRelays()
+            relays = relays + userRlays
+        }
+
         if (relays.isEmpty()) {
-            relays = defaultRelayUrls.map { RelayEntity(id = 0, url = it, kind = 0, createdAt = 0, read = 1, write = 1) }
+            relays = defaultRelayUrls.map { RelayEntity(id = 0, url = it, kind = 0, createdAt = 0, read = 1, write = 1, hexPub = "") }
         }
 
         relays.forEach {
@@ -378,12 +387,12 @@ object NostrClient {
     }
 
     private fun manageInboxRelays(context: Context, event: Event) {
-        val db = AppDatabase.getDatabase(context, Pokey.getInstance().getHexKey())
-        val lastCreatedRelayAt = db.applicationDao().getLatestRelaysByKind(event.kind)
+        val db = AppDatabase.getDatabase(context, "common")
+        val lastCreatedRelayAt = db.applicationDao().getLatestRelaysByKind(event.kind, event.pubKey)
 
         if (lastCreatedRelayAt == null || lastCreatedRelayAt < event.createdAt) {
-            db.applicationDao().getRelaysByKind(event.kind).forEach {
-                deleteRelay(context, it.url, it.kind)
+            db.applicationDao().getRelaysByKind(event.kind, event.pubKey).forEach {
+                deleteRelay(event.pubKey, context, it.url, it.kind)
             }
             event.tags
                 .filter { it.size > 1 && (it[0] == "relay" || it[0] == "r") }
@@ -394,7 +403,7 @@ object NostrClient {
                         read = if (it[2] == "read") 1 else 0
                         write = if (it[2] == "write") 1 else 0
                     }
-                    val entity = RelayEntity(id = 0, url = it[1], kind = event.kind, createdAt = event.createdAt, read = read, write = write)
+                    val entity = RelayEntity(id = 0, url = it[1], kind = event.kind, createdAt = event.createdAt, read = read, write = write, hexPub = event.pubKey)
                     db.applicationDao().insertRelay(entity)
                 }
             connectRelays(context)
@@ -409,12 +418,12 @@ object NostrClient {
     }
 
     private fun manageMuteList(context: Context, event: Event) {
-        val db = AppDatabase.getDatabase(context, Pokey.getInstance().getHexKey())
+        val db = AppDatabase.getDatabase(context, "common")
         savePrivateMuteList(context, event.content)
-        db.applicationDao().deleteMuteList(event.kind)
+        db.applicationDao().deleteMuteList(event.kind, event.pubKey)
         event.tags.forEach {
             if (it.size > 1 && (it[0] == "p" || it[0] == "e")) {
-                val muteEntity = MuteEntity(id = 0, kind = event.kind, tagType = it[0], entityId = it[1], private = 0)
+                val muteEntity = MuteEntity(id = 0, kind = event.kind, tagType = it[0], entityId = it[1], private = 0, hexPub = event.pubKey)
                 db.applicationDao().insertMute(muteEntity)
             }
         }
