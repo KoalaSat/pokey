@@ -183,8 +183,7 @@ class HomeFragment : Fragment() {
             buttonAmber.setOnClickListener {
                 ExternalSigner.savePubKey {
                     dialog.hide()
-                    val hexPub = NostrClient.parseNpub(it.toString())
-                    createUser(hexPub, 1)
+                    createUser(it.toString(), 1)
                 }
             }
 
