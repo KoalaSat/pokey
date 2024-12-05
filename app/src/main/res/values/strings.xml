@@ -53,5 +53,5 @@
     <string name="primary_inbox_account">To avoid relay overload and battery drain, you can use only one account\'s inbox relays.</string>
     <string name="select">Select</string>
     <string name="delete">Delete</string>
-    <string name="stopPokey">"Stop Pokey to run this action "</string>
+    <string name="stopPokey">"Stop Pokey to perform this action "</string>
 </resources>
