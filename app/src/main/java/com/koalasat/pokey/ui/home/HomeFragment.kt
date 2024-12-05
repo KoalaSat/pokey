@@ -60,7 +60,6 @@ class HomeFragment : Fragment() {
 
         homeViewModel.accountList.observeForever { value ->
             if (binding != null) {
-                binding.serviceStart.isEnabled = value?.isNotEmpty() == true
                 if (binding.accountList.size > 1) {
                     binding.accountList.removeViews(0, binding.accountList.size - 1)
                 }
