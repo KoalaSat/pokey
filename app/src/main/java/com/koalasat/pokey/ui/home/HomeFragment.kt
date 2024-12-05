@@ -128,7 +128,7 @@ class HomeFragment : Fragment() {
             CoroutineScope(Dispatchers.IO).launch {
                 val dao = AppDatabase.getDatabase(requireContext(), "common").applicationDao()
                 val users = dao.getUsers()
-                if (users.isNotEmpty()) {
+                if (users.isNotEmpty() || viewModel.serviceStart.value == true) {
                     viewModel.updateServiceStart(!viewModel.serviceStart.value!!)
                 } else {
                     withContext(Dispatchers.Main) {
