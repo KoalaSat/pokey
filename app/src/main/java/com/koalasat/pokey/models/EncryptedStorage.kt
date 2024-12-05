@@ -14,7 +14,6 @@ object PrefKeys {
 }
 object DefaultKeys {
     const val BROADCAST = true
-    const val EXTERNAL_SIGNER = "com.greenart7c3.nostrsigner"
 }
 
 object EncryptedStorage {
@@ -27,9 +26,6 @@ object EncryptedStorage {
 
     private val _broadcast = MutableLiveData<Boolean>().apply { DefaultKeys.BROADCAST }
     val broadcast: LiveData<Boolean> get() = _broadcast
-
-    private val _externalSigner = MutableLiveData<String>().apply { DefaultKeys.EXTERNAL_SIGNER }
-    val externalSigner: LiveData<String> get() = _externalSigner
 
     fun init(context: Context) {
         val masterKey: MasterKey =
@@ -46,13 +42,7 @@ object EncryptedStorage {
         ) as EncryptedSharedPreferences
 
         _broadcast.postValue(sharedPreferences.getBoolean(PrefKeys.NOSTR_BROADCAST, DefaultKeys.BROADCAST))
-        _externalSigner.postValue(sharedPreferences.getString(PrefKeys.EXTERNAL_SIGNER, DefaultKeys.EXTERNAL_SIGNER) ?: DefaultKeys.EXTERNAL_SIGNER)
         _inboxPubKey.postValue(sharedPreferences.getString(PrefKeys.INBOX_PUBKEY, ""))
-    }
-
-    fun updateExternalSigner(newValue: String) {
-        sharedPreferences.edit().putString(PrefKeys.EXTERNAL_SIGNER, newValue).apply()
-        _externalSigner.postValue(newValue)
     }
 
     fun updateBroadcast(newValue: Boolean) {

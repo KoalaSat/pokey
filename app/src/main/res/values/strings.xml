@@ -54,4 +54,5 @@
     <string name="select">Select</string>
     <string name="delete">Delete</string>
     <string name="stopPokey">"Stop Pokey to perform this action "</string>
+    <string name="addUsersToStart">Add at least one user to start Pokey.</string>
 </resources>
