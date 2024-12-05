@@ -15,12 +15,15 @@ import com.vitorpamplona.quartz.signers.ExternalSignerLauncher
 import com.vitorpamplona.quartz.signers.SignerType
 import com.vitorpamplona.quartz.utils.TimeUtils
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.get
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.launch
 
 object ExternalSigner {
+    const val EXTERNAL_SIGNER = "com.greenart7c3.nostrsigner"
     private lateinit var nostrSignerLauncher: ActivityResultLauncher<Intent>
-    private lateinit var externalSignerLauncher: ExternalSignerLauncher
+    private var externalSignerLaunchers = ConcurrentHashMap<String, ExternalSignerLauncher>()
 
     fun init(activity: AppCompatActivity) {
         nostrSignerLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -28,17 +31,18 @@ object ExternalSigner {
                 Log.e("Pokey", "ExternalSigner result error: ${result.resultCode}")
                 Toast.makeText(activity, activity.getString(R.string.amber_not_found), Toast.LENGTH_SHORT).show()
             } else {
-                result.data?.let { externalSignerLauncher.newResult(it) }
+                result.data?.let {
+                    var externalSignerLauncher = externalSignerLaunchers[""]
+                    externalSignerLauncher?.newResult(it)
+                }
             }
         }
-
-        EncryptedStorage.inboxPubKey.observeForever {
-            startLauncher(it)
-        }
+        startLauncher("")
     }
 
     fun savePubKey(onReady: (pubKey: String) -> Unit) {
-        externalSignerLauncher.openSignerApp(
+        var externalSignerLauncher = externalSignerLaunchers[""]
+        externalSignerLauncher?.openSignerApp(
             "",
             SignerType.GET_PUBLIC_KEY,
             "",
@@ -47,17 +51,15 @@ object ExternalSigner {
             val split = result.split("-")
             val pubkey = split.first()
             if (split.first().isNotEmpty()) {
-                if (split.size > 1) {
-                    EncryptedStorage.updateExternalSigner(split[1])
-                }
-                startLauncher(pubkey)
-                onReady(pubkey)
+                val hexPub = NostrClient.parseNpub(pubkey.toString()).toString()
+                startLauncher(hexPub)
+                onReady(hexPub)
             }
         }
     }
 
     fun auth(hexKey: String, relayUrl: String, challenge: String, onReady: (Event) -> Unit) {
-        if (!::externalSignerLauncher.isInitialized) return
+        var externalSignerLauncher = externalSignerLaunchers[hexKey]
 
         val createdAt = TimeUtils.now()
         val kind = 22242
@@ -78,7 +80,7 @@ object ExternalSigner {
                 content = content,
                 sig = "",
             )
-        externalSignerLauncher.openSigner(
+        externalSignerLauncher?.openSigner(
             event,
         ) {
             onReady(
@@ -96,28 +98,26 @@ object ExternalSigner {
     }
 
     fun sign(event: Event, onReady: (String) -> Unit) {
-        externalSignerLauncher.openSigner(
+        var externalSignerLauncher = externalSignerLaunchers[event.pubKey]
+        externalSignerLauncher?.openSigner(
             event,
             onReady,
         )
     }
 
     private fun startLauncher(pubKey: String) {
-        var externalSignerPackage = EncryptedStorage.externalSigner.value
-
-        if (pubKey.isNotEmpty() == true && externalSignerPackage?.isNotEmpty() == true) {
-            externalSignerLauncher = ExternalSignerLauncher(pubKey, signerPackageName = externalSignerPackage)
-            externalSignerLauncher.registerLauncher(
-                launcher = {
-                    try {
-                        nostrSignerLauncher.launch(it)
-                    } catch (e: Exception) {
-                        if (e is CancellationException) throw e
-                        Log.e("Pokey", "Error opening Signer app", e)
-                    }
-                },
-                contentResolver = { Pokey.getInstance().contentResolverFn() },
-            )
-        }
+        val externalSignerLauncher = ExternalSignerLauncher(pubKey, signerPackageName = EXTERNAL_SIGNER)
+        externalSignerLauncher.registerLauncher(
+            launcher = {
+                try {
+                    nostrSignerLauncher.launch(it)
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    Log.e("Pokey", "Error opening Signer app", e)
+                }
+            },
+            contentResolver = { Pokey.getInstance().contentResolverFn() },
+        )
+        externalSignerLaunchers.put(pubKey, externalSignerLauncher)
     }
 }

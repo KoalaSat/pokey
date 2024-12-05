@@ -35,12 +35,11 @@ import com.koalasat.pokey.utils.images.CircleTransform
 import com.koalasat.pokey.utils.isDarkThemeEnabled
 import com.squareup.picasso.Picasso
 import com.vitorpamplona.quartz.encoders.Hex
-import com.vitorpamplona.quartz.encoders.Nip19Bech32
-import com.vitorpamplona.quartz.encoders.Nip19Bech32.uriToRoute
 import com.vitorpamplona.quartz.encoders.toNpub
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONException
 
 class HomeFragment : Fragment() {
@@ -59,7 +58,7 @@ class HomeFragment : Fragment() {
             ViewModelProvider(this)[HomeViewModel::class.java]
 
         homeViewModel.accountList.observeForever { value ->
-            if (binding != null) {
+            if (_binding != null) {
                 if (binding.accountList.size > 1) {
                     binding.accountList.removeViews(0, binding.accountList.size - 1)
                 }
@@ -126,7 +125,17 @@ class HomeFragment : Fragment() {
         }
 
         binding.serviceStart.setOnClickListener {
-            viewModel.updateServiceStart(!viewModel.serviceStart.value!!)
+            CoroutineScope(Dispatchers.IO).launch {
+                val dao = AppDatabase.getDatabase(requireContext(), "common").applicationDao()
+                val users = dao.getUsers()
+                if (users.isNotEmpty()) {
+                    viewModel.updateServiceStart(!viewModel.serviceStart.value!!)
+                } else {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), getString(R.string.addUsersToStart), Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         }
 
         Pokey.isEnabled.observe(viewLifecycleOwner) {
@@ -174,12 +183,13 @@ class HomeFragment : Fragment() {
             buttonAmber.setOnClickListener {
                 ExternalSigner.savePubKey {
                     dialog.hide()
-                    createUser(it, 1)
+                    val hexPub = NostrClient.parseNpub(it.toString())
+                    createUser(hexPub, 1)
                 }
             }
 
             buttonSubmitAccount.setOnClickListener {
-                val hexPub = parseNpubInput(npubInput.text.toString())
+                val hexPub = NostrClient.parseNpub(npubInput.text.toString())
                 if (hexPub?.isNotEmpty() == true) {
                     npubInput.error = null
                     dialog.hide()
@@ -191,20 +201,6 @@ class HomeFragment : Fragment() {
 
             dialog.show()
         }
-    }
-
-    private fun parseNpubInput(value: String): String? {
-        if (value.isEmpty()) return null
-
-        val parseReturn = uriToRoute(value)
-
-        when (val parsed = parseReturn?.entity) {
-            is Nip19Bech32.NPub -> {
-                return parsed.hex
-            }
-        }
-
-        return null
     }
 
     private fun loadAvatar(avatar: String?, imageView: ImageView) {
@@ -257,11 +253,10 @@ class HomeFragment : Fragment() {
                     CoroutineScope(Dispatchers.IO).launch {
                         val dao = context?.let { AppDatabase.getDatabase(it, "common").applicationDao() }
                         dao?.deleteUser(user)
-                        if (EncryptedStorage.inboxPubKey.value == user.hexPub) {
-                            var nextUser = dao?.getUsers()?.first()
-                            if (nextUser != null) {
-                                EncryptedStorage.updateInboxPubKey(nextUser.hexPub)
-                            }
+                        var users = dao?.getUsers()
+                        if (users?.size!! > 0 && EncryptedStorage.inboxPubKey.value == user.hexPub) {
+                            var nextUser = users.first()
+                            EncryptedStorage.updateInboxPubKey(nextUser.hexPub)
                         }
                         viewModel.loadAccounts()
                     }

@@ -17,6 +17,8 @@ import com.vitorpamplona.ammolite.relays.RelayPool
 import com.vitorpamplona.ammolite.relays.TypedFilter
 import com.vitorpamplona.ammolite.relays.filters.EOSETime
 import com.vitorpamplona.ammolite.relays.filters.SincePerRelayFilter
+import com.vitorpamplona.quartz.encoders.Nip19Bech32
+import com.vitorpamplona.quartz.encoders.Nip19Bech32.uriToRoute
 import com.vitorpamplona.quartz.encoders.toHexKey
 import com.vitorpamplona.quartz.events.Event
 import com.vitorpamplona.quartz.utils.TimeUtils
@@ -301,6 +303,20 @@ object NostrClient {
                 },
             )
         }
+    }
+
+    fun parseNpub(value: String): String? {
+        if (value.isEmpty()) return null
+
+        val parseReturn = uriToRoute(value)
+
+        when (val parsed = parseReturn?.entity) {
+            is Nip19Bech32.NPub -> {
+                return parsed.hex
+            }
+        }
+
+        return null
     }
 
     private fun getInboxLists(context: Context) {
