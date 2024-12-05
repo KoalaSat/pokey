@@ -35,6 +35,7 @@ val MIGRATION_6_7 =
             db.execSQL("CREATE INDEX IF NOT EXISTS `relay_by_url` ON `relay` (`url`)")
         }
     }
+
 val MIGRATION_7_8 =
     object : Migration(7, 8) {
         override fun migrate(db: SupportSQLiteDatabase) {
@@ -58,6 +59,16 @@ val MIGRATION_7_8 =
         }
     }
 
+val MIGRATION_8_9 =
+    object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE user ADD COLUMN signer INTEGER NOT NULL DEFAULT 0;")
+            db.execSQL("ALTER TABLE user ADD COLUMN account INTEGER NOT NULL DEFAULT 0;")
+            db.execSQL("ALTER TABLE relay ADD COLUMN `hexPub` TEXT NOT NULL;")
+            db.execSQL("ALTER TABLE mute ADD COLUMN `hexPub` TEXT NOT NULL;")
+        }
+    }
+
 @Database(
     entities = [
         NotificationEntity::class,
@@ -65,7 +76,7 @@ val MIGRATION_7_8 =
         MuteEntity::class,
         UserEntity::class,
     ],
-    version = 8,
+    version = 9,
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -86,6 +97,7 @@ abstract class AppDatabase : RoomDatabase() {
                         .addMigrations(MIGRATION_5_6)
                         .addMigrations(MIGRATION_6_7)
                         .addMigrations(MIGRATION_7_8)
+                        .addMigrations(MIGRATION_8_9)
                         .build()
                 instance
             }

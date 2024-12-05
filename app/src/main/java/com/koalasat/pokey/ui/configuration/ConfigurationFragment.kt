@@ -6,8 +6,16 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import com.google.android.material.tabs.TabLayout
+import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.databinding.FragmentNotificationsBinding
 import com.koalasat.pokey.models.EncryptedStorage
+import com.vitorpamplona.quartz.encoders.Hex
+import com.vitorpamplona.quartz.encoders.toNpub
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ConfigurationFragment : Fragment() {
 
@@ -21,8 +29,6 @@ class ConfigurationFragment : Fragment() {
     ): View {
         val viewModel =
             ViewModelProvider(this)[ConfigurationViewModel::class.java]
-
-        viewModel.refreshData()
 
         _binding = FragmentNotificationsBinding.inflate(inflater, container, false)
         val root: View = binding.root
@@ -82,6 +88,41 @@ class ConfigurationFragment : Fragment() {
         }
         binding.newMentions.setOnCheckedChangeListener { _, isChecked ->
             viewModel.updateNotifyMentions(isChecked)
+        }
+
+        binding.accountTabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                viewModel.updateUserHexPubKey(tab.tag.toString())
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab) {
+                // This is called when a tab is unselected
+            }
+
+            override fun onTabReselected(tab: TabLayout.Tab) {
+                // This is called when a tab is reselected
+            }
+        })
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val dao = AppDatabase.getDatabase(requireContext(), "common").applicationDao()
+            val users = dao.getUsers()
+            withContext(Dispatchers.Main) {
+                var firstInstance = false
+                users.forEach {
+                    if (!firstInstance) {
+                        firstInstance = true
+                        viewModel.updateUserHexPubKey(it.hexPub)
+                    }
+                    val name = if (it.name?.isNotEmpty() == true) {
+                        it.name
+                    } else {
+                        Hex.decode(it.hexPub).toNpub().substring(0, 10) + "..."
+                    }
+
+                    binding.accountTabLayout.addTab(binding.accountTabLayout.newTab().setText(name).setTag(it.hexPub))
+                }
+            }
         }
 
         return root

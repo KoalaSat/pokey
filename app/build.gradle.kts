@@ -134,6 +134,7 @@ dependencies {
     }
     implementation(libs.picasso)
     implementation(libs.jna) { artifact { type = "aar" } }
+    implementation(libs.androidx.gridlayout)
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
     implementation(libs.androidx.compiler)

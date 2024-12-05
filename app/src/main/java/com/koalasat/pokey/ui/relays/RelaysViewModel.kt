@@ -18,20 +18,20 @@ class RelaysViewModel() : ViewModel() {
     val validationResultPrivateRelay: LiveData<Boolean> get() = _validationResultPrivateRelay
 
     fun updateNewPublicRelay(text: String) {
-        _newPublicRelay.value = text
+        _newPublicRelay.postValue(text)
         if (text.isNotEmpty()) validateNewPublicRelay()
     }
 
     private fun validateNewPublicRelay() {
-        _validationResultPublicRelay.value = _newPublicRelay.value?.let { regex.matches(it) }
+        _validationResultPublicRelay.postValue(_newPublicRelay.value?.let { regex.matches(it) })
     }
 
     fun updateNewPrivateRelay(text: String) {
-        _newPrivateRelay.value = text
+        _newPrivateRelay.postValue(text)
         if (text.isNotEmpty()) validateNewPrivateRelay()
     }
 
     private fun validateNewPrivateRelay() {
-        _validationResultPrivateRelay.value = _newPrivateRelay.value?.let { regex.matches(it) }
+        _validationResultPrivateRelay.postValue(_newPrivateRelay.value?.let { regex.matches(it) })
     }
 }

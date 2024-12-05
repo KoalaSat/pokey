@@ -7,7 +7,6 @@ import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.util.Log
 import androidx.core.content.ContextCompat.getSystemService
-import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.database.MuteEntity
 import com.koalasat.pokey.models.NostrClient
@@ -22,13 +21,14 @@ class NotificationReceiver : BroadcastReceiver() {
                 "MUTE" -> {
                     Log.d("Pokey", "MUTE")
                     val eventId = intent.getStringExtra("rootEventId")
-                    if (eventId?.isNotEmpty() == true) {
+                    val hexPub = intent.getStringExtra("hexPub")
+                    if (eventId?.isNotEmpty() == true && hexPub?.isNotEmpty() == true) {
                         CoroutineScope(Dispatchers.IO).launch {
-                            val db = AppDatabase.getDatabase(context, Pokey.getInstance().getHexKey())
-                            if (db.applicationDao().existsMuteEntity(eventId) == 0) {
-                                val muteEntity = MuteEntity(id = 0, kind = 10000, tagType = "e", entityId = eventId, private = 0)
+                            val db = AppDatabase.getDatabase(context, "common")
+                            if (db.applicationDao().existsMuteEntity(eventId, hexPub) == 0) {
+                                val muteEntity = MuteEntity(id = 0, kind = 10000, tagType = "e", entityId = eventId, private = 0, hexPub = hexPub)
                                 db.applicationDao().insertMute(muteEntity)
-                                NostrClient.publishPublicMute(context)
+                                NostrClient.publishPublicMute(hexPub, context)
                             }
                         }
                     }

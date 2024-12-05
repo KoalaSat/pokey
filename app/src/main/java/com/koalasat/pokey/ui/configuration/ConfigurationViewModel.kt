@@ -6,7 +6,6 @@ import android.os.Looper
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.models.EncryptedStorage
 import kotlinx.coroutines.CoroutineScope
@@ -15,6 +14,9 @@ import kotlinx.coroutines.launch
 
 class ConfigurationViewModel(application: Application) : AndroidViewModel(application) {
     private val appContext = getApplication<Application>().applicationContext
+
+    private val _userHexPubKey = MutableLiveData<String>()
+    val userHexPubKey: LiveData<String> = _userHexPubKey
 
     private val _broadcast = MutableLiveData<Boolean>().apply { value = EncryptedStorage.broadcast.value }
     val broadcast: LiveData<Boolean> = _broadcast
@@ -42,22 +44,24 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
 
     init {
         EncryptedStorage.broadcast.observeForever { value ->
-            _broadcast.value = value
+            _broadcast.postValue(value)
         }
-        refreshData()
+
+        _userHexPubKey.observeForever {
+            refreshData()
+        }
     }
 
     fun updateBroadcast(value: Boolean) {
-        _broadcast.value = value
+        _broadcast.postValue(value)
         EncryptedStorage.updateBroadcast(value)
     }
 
     fun updateNotifyReplies(value: Boolean) {
-        _newReplies.value = value
+        _newReplies.postValue(value)
         CoroutineScope(Dispatchers.IO).launch {
-            val hexKey = Pokey.getInstance().getHexKey()
-            val dao = AppDatabase.getDatabase(appContext, hexKey).applicationDao()
-            val activeUser = dao.getUser(hexKey)
+            val dao = AppDatabase.getDatabase(appContext, "common").applicationDao()
+            val activeUser = dao.getUser(userHexPubKey.value.toString())
             if (activeUser != null) {
                 activeUser.notifyReplies = if (value) 1 else 0
                 dao.updateUser(activeUser)
@@ -66,11 +70,10 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun updateNotifyReactions(value: Boolean) {
-        _newReactions.value = value
+        _newReactions.postValue(value)
         CoroutineScope(Dispatchers.IO).launch {
-            val hexKey = Pokey.getInstance().getHexKey()
-            val dao = AppDatabase.getDatabase(appContext, hexKey).applicationDao()
-            val activeUser = dao.getUser(hexKey)
+            val dao = AppDatabase.getDatabase(appContext, "common").applicationDao()
+            val activeUser = dao.getUser(userHexPubKey.value.toString())
             if (activeUser != null) {
                 activeUser.notifyReactions = if (value) 1 else 0
                 dao.updateUser(activeUser)
@@ -79,11 +82,10 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun updateNotifyPrivate(value: Boolean) {
-        _newPrivate.value = value
+        _newPrivate.postValue(value)
         CoroutineScope(Dispatchers.IO).launch {
-            val hexKey = Pokey.getInstance().getHexKey()
-            val dao = AppDatabase.getDatabase(appContext, hexKey).applicationDao()
-            val activeUser = dao.getUser(hexKey)
+            val dao = AppDatabase.getDatabase(appContext, "common").applicationDao()
+            val activeUser = dao.getUser(userHexPubKey.value.toString())
             if (activeUser != null) {
                 activeUser.notifyPrivate = if (value) 1 else 0
                 dao.updateUser(activeUser)
@@ -92,11 +94,10 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun updateNotifyZaps(value: Boolean) {
-        _newZaps.value = value
+        _newZaps.postValue(value)
         CoroutineScope(Dispatchers.IO).launch {
-            val hexKey = Pokey.getInstance().getHexKey()
-            val dao = AppDatabase.getDatabase(appContext, hexKey).applicationDao()
-            val activeUser = dao.getUser(hexKey)
+            val dao = AppDatabase.getDatabase(appContext, "common").applicationDao()
+            val activeUser = dao.getUser(userHexPubKey.value.toString())
             if (activeUser != null) {
                 activeUser.notifyZaps = if (value) 1 else 0
                 dao.updateUser(activeUser)
@@ -105,11 +106,10 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun updateNotifyQuotes(value: Boolean) {
-        _newQuotes.value = value
+        _newQuotes.postValue(value)
         CoroutineScope(Dispatchers.IO).launch {
-            val hexKey = Pokey.getInstance().getHexKey()
-            val dao = AppDatabase.getDatabase(appContext, hexKey).applicationDao()
-            val activeUser = dao.getUser(hexKey)
+            val dao = AppDatabase.getDatabase(appContext, "common").applicationDao()
+            val activeUser = dao.getUser(userHexPubKey.value.toString())
             if (activeUser != null) {
                 activeUser.notifyQuotes = if (value) 1 else 0
                 dao.updateUser(activeUser)
@@ -118,11 +118,10 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun updateNotifyMentions(value: Boolean) {
-        _newMentions.value = value
+        _newMentions.postValue(value)
         CoroutineScope(Dispatchers.IO).launch {
-            val hexKey = Pokey.getInstance().getHexKey()
-            val dao = AppDatabase.getDatabase(appContext, hexKey).applicationDao()
-            val activeUser = dao.getUser(hexKey)
+            val dao = AppDatabase.getDatabase(appContext, "common").applicationDao()
+            val activeUser = dao.getUser(userHexPubKey.value.toString())
             if (activeUser != null) {
                 activeUser.notifyMentions = if (value) 1 else 0
                 dao.updateUser(activeUser)
@@ -131,11 +130,10 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun updateNotifyReposts(value: Boolean) {
-        _newReposts.value = value
+        _newReposts.postValue(value)
         CoroutineScope(Dispatchers.IO).launch {
-            val hexKey = Pokey.getInstance().getHexKey()
-            val dao = AppDatabase.getDatabase(appContext, hexKey).applicationDao()
-            val activeUser = dao.getUser(hexKey)
+            val dao = AppDatabase.getDatabase(appContext, "common").applicationDao()
+            val activeUser = dao.getUser(userHexPubKey.value.toString())
             if (activeUser != null) {
                 activeUser.notifyReposts = if (value) 1 else 0
                 dao.updateUser(activeUser)
@@ -143,21 +141,24 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
+    fun updateUserHexPubKey(value: String) {
+        _userHexPubKey.postValue(value)
+    }
+
     fun refreshData() {
         CoroutineScope(Dispatchers.IO).launch {
-            val hexKey = Pokey.getInstance().getHexKey()
-            val dao = AppDatabase.getDatabase(appContext, hexKey).applicationDao()
-            val activeUser = dao.getUser(hexKey)
+            val dao = AppDatabase.getDatabase(appContext, "common").applicationDao()
+            val activeUser = dao.getUser(userHexPubKey.value.toString())
             if (activeUser != null) {
                 val mainHandler = Handler(Looper.getMainLooper())
                 mainHandler.post {
-                    _newReplies.value = activeUser.notifyReplies == 1
-                    _newZaps.value = activeUser.notifyZaps == 1
-                    _newQuotes.value = activeUser.notifyZaps == 1
-                    _newReactions.value = activeUser.notifyReactions == 1
-                    _newPrivate.value = activeUser.notifyPrivate == 1
-                    _newMentions.value = activeUser.notifyMentions == 1
-                    _newReposts.value = activeUser.notifyReposts == 1
+                    _newReplies.postValue(activeUser.notifyReplies == 1)
+                    _newZaps.postValue(activeUser.notifyZaps == 1)
+                    _newQuotes.postValue(activeUser.notifyQuotes == 1)
+                    _newReactions.postValue(activeUser.notifyReactions == 1)
+                    _newPrivate.postValue(activeUser.notifyPrivate == 1)
+                    _newMentions.postValue(activeUser.notifyMentions == 1)
+                    _newReposts.postValue(activeUser.notifyReposts == 1)
                 }
             }
         }
