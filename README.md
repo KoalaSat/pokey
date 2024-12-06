@@ -33,7 +33,7 @@ What is Nostr: https://www.nostr.how
 - [x] Broadcast to other apps
 - [x] Auth to relays
 - [ ] Use built-in Tor engine
-- [ ] Multi-account
+- [x] Multi-account
 - [x] InBox Relays management
 - [x] Granulated notification settings
 - [x] Mute button and mute lists
