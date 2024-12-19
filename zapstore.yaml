@@ -7,3 +7,5 @@ pokey:
     license: MIT
     artifacts:
       - pokey-universal-v%v-alpha.apk
+      - pokey-arm64-v8a-v%v-alpha.apk
+      - pokey-armeabi-v7a-v%v-alpha.apk

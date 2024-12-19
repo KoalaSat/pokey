@@ -15,6 +15,9 @@ interface ApplicationDao {
     @Query("SELECT EXISTS (SELECT 1 FROM notification WHERE eventId = :eventId)")
     fun existsNotification(eventId: String): Int
 
+    @Query("SELECT * FROM notification")
+    fun getNotifications(): List<NotificationEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertNotification(notificationEntity: NotificationEntity): Long?
 

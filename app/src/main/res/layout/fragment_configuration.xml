@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.configuration.ConfigurationFragment">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="0dp"
+        android:orientation="vertical"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:layout_marginBottom="52dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.5">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" >
+
+                <TextView
+                    android:id="@+id/title_public_inbox2"
+                    android:layout_width="match_parent"
+                    android:layout_height="39dp"
+                    android:layout_marginTop="0dp"
+                    android:hint="@string/config_broadcast"
+                    android:textAlignment="center"
+                    android:textSize="20sp" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/broadcast"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="@string/broadcast" />
+
+                <TextView
+                    android:id="@+id/title_public_inbox3"
+                    android:layout_width="match_parent"
+                    android:layout_height="39dp"
+                    android:layout_marginTop="25dp"
+                    android:hint="@string/config_notifications"
+                    android:textAlignment="center"
+                    android:textSize="20sp" />
+
+                <com.google.android.material.tabs.TabLayout
+                    android:id="@+id/account_tab_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/newReplies"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="@string/active_replies" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/newMentions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="@string/active_mentions" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/newReposts"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="@string/active_reposts" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/newQuotes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="@string/active_quotes" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/newZaps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="@string/active_zaps" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/newReactions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="@string/active_reactions" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/newPrivate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="@string/active_private_messages" />
+            </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

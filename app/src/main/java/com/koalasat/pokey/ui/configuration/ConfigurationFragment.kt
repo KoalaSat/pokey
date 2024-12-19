@@ -8,7 +8,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.tabs.TabLayout
 import com.koalasat.pokey.database.AppDatabase
-import com.koalasat.pokey.databinding.FragmentNotificationsBinding
+import com.koalasat.pokey.databinding.FragmentConfigurationBinding
 import com.koalasat.pokey.models.EncryptedStorage
 import com.vitorpamplona.quartz.encoders.Hex
 import com.vitorpamplona.quartz.encoders.toNpub
@@ -19,7 +19,7 @@ import kotlinx.coroutines.withContext
 
 class ConfigurationFragment : Fragment() {
 
-    private var _binding: FragmentNotificationsBinding? = null
+    private var _binding: FragmentConfigurationBinding? = null
     private val binding get() = _binding!!
 
     override fun onCreateView(
@@ -30,7 +30,7 @@ class ConfigurationFragment : Fragment() {
         val viewModel =
             ViewModelProvider(this)[ConfigurationViewModel::class.java]
 
-        _binding = FragmentNotificationsBinding.inflate(inflater, container, false)
+        _binding = FragmentConfigurationBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
         viewModel.broadcast.observe(viewLifecycleOwner) { value ->
