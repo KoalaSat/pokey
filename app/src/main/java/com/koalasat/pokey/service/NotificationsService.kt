@@ -17,6 +17,8 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.koalasat.pokey.Connectivity
+import com.koalasat.pokey.MainActivity
+import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.R
 import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.database.NotificationEntity
@@ -25,6 +27,7 @@ import com.koalasat.pokey.models.ExternalSigner
 import com.koalasat.pokey.models.NostrClient
 import com.koalasat.pokey.utils.images.CircleTransform
 import com.squareup.picasso.Picasso
+import com.squareup.picasso.Target
 import com.vitorpamplona.ammolite.relays.Client
 import com.vitorpamplona.ammolite.relays.Relay
 import com.vitorpamplona.quartz.encoders.Hex
@@ -268,7 +271,13 @@ class NotificationsService : Service() {
             val existsEvent = db.applicationDao().existsNotification(event.id)
             if (existsEvent > 0) return@launch
 
-            db.applicationDao().insertNotification(NotificationEntity(0, event.id, event.createdAt))
+            var notificationEntity = NotificationEntity(
+                0,
+                event.id,
+                userHexPub,
+                event.createdAt,
+            )
+            notificationEntity.id = db.applicationDao().insertNotification(notificationEntity)!!
 
             if (event.firstTaggedEvent()?.isNotEmpty() == true && db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString(), userHexPub) == 1) return@launch
             if (!event.hasVerifiedSignature()) return@launch
@@ -360,6 +369,12 @@ class NotificationsService : Service() {
                     avatar = it?.getString("picture").toString()
                 } catch (e: JSONException) { }
 
+                notificationEntity.avatarUrl = avatar
+                notificationEntity.title = title
+                notificationEntity.text = text
+                notificationEntity.nip32 = nip32Bech32
+                db.applicationDao().updateNotification(notificationEntity)
+
                 if (avatar.isEmpty()) {
                     displayNoteNotification(userHexPub, title, text, nip32Bech32, null, event)
                 } else {
@@ -370,7 +385,7 @@ class NotificationsService : Service() {
                             .resize(100, 100)
                             .centerCrop()
                             .transform(CircleTransform())
-                            .into(object : com.squareup.picasso.Target {
+                            .into(object : Target {
                                 override fun onBitmapLoaded(bitmap: Bitmap, from: Picasso.LoadedFrom) {
                                     displayNoteNotification(userHexPub, title, text, nip32Bech32, bitmap, event)
                                 }
@@ -390,16 +405,6 @@ class NotificationsService : Service() {
     }
 
     private fun displayNoteNotification(hexPub: String, title: String, text: String, authorBech32: String, avatar: Bitmap?, event: Event) {
-        val deepLinkIntent = Intent(Intent.ACTION_VIEW).apply {
-            data = Uri.parse("nostr:$authorBech32")
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            this@NotificationsService,
-            0,
-            deepLinkIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-
         val notificationManager =
             getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val intentAction1 = Intent(this, NotificationReceiver::class.java).apply {
@@ -409,7 +414,7 @@ class NotificationsService : Service() {
             putExtra("hexPub", hexPub)
         }
         val pendingIntentMute = PendingIntent.getBroadcast(this, event.id.hashCode(), intentAction1, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val builder: NotificationCompat.Builder =
+        var builder: NotificationCompat.Builder =
             NotificationCompat.Builder(
                 applicationContext,
                 channelNotificationsId,
@@ -419,10 +424,27 @@ class NotificationsService : Service() {
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setLargeIcon(avatar)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setContentIntent(pendingIntent)
                 .addAction(0, getString(R.string.mute_thread), pendingIntentMute)
                 .setAutoCancel(true)
 
+        var deepLinkIntent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("nostr:$authorBech32")
+        }
+        if (deepLinkIntent.resolveActivity(this@NotificationsService.packageManager) == null) {
+            deepLinkIntent = Intent(this@NotificationsService, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this@NotificationsService,
+            0,
+            deepLinkIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        builder = builder.setContentIntent(pendingIntent)
+
         notificationManager.notify(event.id.hashCode(), builder.build())
+        Pokey.updateNewPrivateRelay(event.createdAt)
     }
 }
