@@ -17,7 +17,7 @@ data class NotificationEntity(
     @PrimaryKey(autoGenerate = true)
     var id: Long,
     val eventId: String,
-    val accountKexKey: String,
+    val accountKexPub: String,
     val time: Long,
     var title: String? = "",
     var text: String? = "",

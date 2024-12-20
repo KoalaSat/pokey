@@ -74,8 +74,8 @@ val MIGRATION_9_10 =
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE notification ADD COLUMN title TEXT DEFAULT '';")
             db.execSQL("ALTER TABLE notification ADD COLUMN text TEXT DEFAULT '';")
+            db.execSQL("ALTER TABLE notification ADD COLUMN accountKexPub TEXT DEFAULT '';")
             db.execSQL("ALTER TABLE notification ADD COLUMN avatarUrl TEXT DEFAULT '';")
-            db.execSQL("ALTER TABLE notification ADD COLUMN accountKexPub TEXT NOT NULL DEFAULT '';")
             db.execSQL("ALTER TABLE notification ADD COLUMN nip32 TEXT NOT NULL DEFAULT '';")
         }
     }
