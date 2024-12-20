@@ -15,8 +15,14 @@ interface ApplicationDao {
     @Query("SELECT EXISTS (SELECT 1 FROM notification WHERE eventId = :eventId)")
     fun existsNotification(eventId: String): Int
 
+    @Query("SELECT * FROM notification WHERE title != '' ORDER BY time DESC")
+    fun getNotifications(): List<NotificationEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertNotification(notificationEntity: NotificationEntity): Long?
+
+    @Update(onConflict = OnConflictStrategy.REPLACE)
+    fun updateNotification(notificationEntity: NotificationEntity): Int
 
     @Query("SELECT EXISTS (SELECT 1 FROM relay WHERE url = :url AND kind = :kind AND hexPub = :hexPub)")
     fun existsRelay(url: String, kind: Int, hexPub: String): Int

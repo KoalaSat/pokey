@@ -55,4 +55,7 @@
     <string name="delete">Delete</string>
     <string name="stopPokey">"Stop Pokey to perform this action "</string>
     <string name="addUsersToStart">Add at least one user to start Pokey.</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_notifications">Notifications</string>
+    <string name="no_notifications">You didn\'t receive any notification yet</string>
 </resources>

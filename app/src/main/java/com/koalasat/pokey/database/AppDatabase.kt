@@ -69,6 +69,17 @@ val MIGRATION_8_9 =
         }
     }
 
+val MIGRATION_9_10 =
+    object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE notification ADD COLUMN title TEXT DEFAULT '';")
+            db.execSQL("ALTER TABLE notification ADD COLUMN text TEXT DEFAULT '';")
+            db.execSQL("ALTER TABLE notification ADD COLUMN avatarUrl TEXT DEFAULT '';")
+            db.execSQL("ALTER TABLE notification ADD COLUMN accountKexPub TEXT NOT NULL DEFAULT '';")
+            db.execSQL("ALTER TABLE notification ADD COLUMN nip32 TEXT NOT NULL DEFAULT '';")
+        }
+    }
+
 @Database(
     entities = [
         NotificationEntity::class,
@@ -76,7 +87,7 @@ val MIGRATION_8_9 =
         MuteEntity::class,
         UserEntity::class,
     ],
-    version = 9,
+    version = 10,
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -98,6 +109,7 @@ abstract class AppDatabase : RoomDatabase() {
                         .addMigrations(MIGRATION_6_7)
                         .addMigrations(MIGRATION_7_8)
                         .addMigrations(MIGRATION_8_9)
+                        .addMigrations(MIGRATION_9_10)
                         .build()
                 instance
             }

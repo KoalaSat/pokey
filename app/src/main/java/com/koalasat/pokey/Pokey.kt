@@ -57,6 +57,8 @@ class Pokey : Application() {
         val loadingPublicRelays: LiveData<Boolean> get() = _loadingPublicRelays
         private val _loadingPrivateRelays = MutableLiveData(false)
         val loadingPrivateRelays: LiveData<Boolean> get() = _loadingPrivateRelays
+        private val _lastNotificationTime = MutableLiveData<Long>()
+        val lastNotificationTime: LiveData<Long> get() = _lastNotificationTime
 
         @Volatile
         private var instance: Pokey? = null
@@ -76,6 +78,10 @@ class Pokey : Application() {
 
         fun updateLoadingPrivateRelays(value: Boolean) {
             _loadingPrivateRelays.postValue(value)
+        }
+
+        fun updateNewPrivateRelay(time: Long) {
+            _lastNotificationTime.postValue(time)
         }
 
         fun isForegroundServiceEnabled(context: Context): Boolean {

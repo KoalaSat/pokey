@@ -15,7 +15,12 @@ import androidx.room.PrimaryKey
 )
 data class NotificationEntity(
     @PrimaryKey(autoGenerate = true)
-    val id: Int,
+    var id: Long,
     val eventId: String,
+    val accountKexKey: String,
     val time: Long,
+    var title: String? = "",
+    var text: String? = "",
+    var avatarUrl: String? = "",
+    var nip32: String? = "",
 )
