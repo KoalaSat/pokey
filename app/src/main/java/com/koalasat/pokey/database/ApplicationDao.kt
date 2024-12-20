@@ -15,7 +15,7 @@ interface ApplicationDao {
     @Query("SELECT EXISTS (SELECT 1 FROM notification WHERE eventId = :eventId)")
     fun existsNotification(eventId: String): Int
 
-    @Query("SELECT * FROM notification WHERE title != NULL ORDER BY time DESC")
+    @Query("SELECT * FROM notification WHERE title != '' ORDER BY time DESC")
     fun getNotifications(): List<NotificationEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
