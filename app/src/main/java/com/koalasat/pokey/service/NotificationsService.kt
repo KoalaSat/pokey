@@ -185,15 +185,7 @@ class NotificationsService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d("Pokey", "Starting foreground service...")
-        startForeground(1, createNotification())
-        keepAlive()
-
-        startSubscription()
-
-        val connectivityManager =
-            (getSystemService(ConnectivityManager::class.java) as ConnectivityManager)
-        connectivityManager.registerDefaultNetworkCallback(networkCallback)
+        startService()
 
         return START_STICKY
     }
@@ -211,6 +203,23 @@ class NotificationsService : Service() {
         }
 
         super.onDestroy()
+    }
+
+    private fun startService() {
+        try {
+            Log.d("Pokey", "Starting foreground service...")
+            startForeground(1, createNotification())
+            keepAlive()
+
+            startSubscription()
+
+            val connectivityManager =
+                (getSystemService(ConnectivityManager::class.java) as ConnectivityManager)
+            connectivityManager.registerDefaultNetworkCallback(networkCallback)
+        } catch (e: Exception) {
+            Log.e("NotificationsService", "Error in service", e)
+            startService()
+        }
     }
 
     private fun startSubscription() {
