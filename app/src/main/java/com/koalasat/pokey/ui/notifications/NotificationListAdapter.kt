@@ -39,7 +39,7 @@ class NotificationListAdapter(
                     .transform(CircleTransform())
                     .into(userAvatarView)
             }
-            if (notificationEntity.accountKexKey.isNotEmpty() == true) {
+            if (notificationEntity.accountKexPub.isNotEmpty() == true) {
                 if (userEntity?.avatar?.isNotEmpty() == true) {
                     Picasso.get()
                         .load(userEntity.avatar)
@@ -59,7 +59,7 @@ class NotificationListAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val notificationEntity = notificationList[position]
-        val userEntity = accountList.find { it.hexPub == notificationEntity.accountKexKey }
+        val userEntity = accountList.find { it.hexPub == notificationEntity.accountKexPub }
 
         holder.itemView.setOnClickListener {
             val deepLinkIntent = Intent(Intent.ACTION_VIEW).apply {
