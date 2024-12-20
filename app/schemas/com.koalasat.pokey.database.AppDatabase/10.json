@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 10,
-    "identityHash": "3cdd284f57285f61fd020b7f573d7675",
+    "identityHash": "af1377a1ad3744fa3d2ede041e3ea808",
     "entities": [
       {
         "tableName": "notification",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `eventId` TEXT NOT NULL, `accountKexPub` TEXT NOT NULL, `time` INTEGER NOT NULL, `title` TEXT, `text` TEXT, `avatarUrl` TEXT, `nip32` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `eventId` TEXT NOT NULL, `time` INTEGER NOT NULL, `accountKexPub` TEXT NOT NULL, `nip32` TEXT NOT NULL, `title` TEXT, `text` TEXT, `avatarUrl` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -21,15 +21,21 @@
             "notNull": true
           },
           {
+            "fieldPath": "time",
+            "columnName": "time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
             "fieldPath": "accountKexPub",
             "columnName": "accountKexPub",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "time",
-            "columnName": "time",
-            "affinity": "INTEGER",
+            "fieldPath": "nip32",
+            "columnName": "nip32",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
@@ -47,12 +53,6 @@
           {
             "fieldPath": "avatarUrl",
             "columnName": "avatarUrl",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "nip32",
-            "columnName": "nip32",
             "affinity": "TEXT",
             "notNull": false
           }
@@ -314,7 +314,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3cdd284f57285f61fd020b7f573d7675')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'af1377a1ad3744fa3d2ede041e3ea808')"
     ]
   }
 }

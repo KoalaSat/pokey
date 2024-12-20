@@ -75,8 +75,8 @@ val MIGRATION_9_10 =
             db.execSQL("ALTER TABLE notification ADD COLUMN title TEXT;")
             db.execSQL("ALTER TABLE notification ADD COLUMN text TEXT;")
             db.execSQL("ALTER TABLE notification ADD COLUMN avatarUrl TEXT;")
-            db.execSQL("ALTER TABLE notification ADD COLUMN accountKexPub NOT NULL TEXT;")
-            db.execSQL("ALTER TABLE notification ADD COLUMN nip32 TEXT NOT NULL;")
+            db.execSQL("ALTER TABLE notification ADD COLUMN accountKexPub TEXT NOT NULL DEFAULT '';")
+            db.execSQL("ALTER TABLE notification ADD COLUMN nip32 TEXT NOT NULL DEFAULT '';")
         }
     }
 

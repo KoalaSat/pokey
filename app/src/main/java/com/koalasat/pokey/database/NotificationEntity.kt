@@ -17,10 +17,10 @@ data class NotificationEntity(
     @PrimaryKey(autoGenerate = true)
     var id: Long,
     val eventId: String,
-    val accountKexPub: String,
     val time: Long,
+    val accountKexPub: String = "",
+    var nip32: String = "",
     var title: String? = "",
     var text: String? = "",
     var avatarUrl: String? = "",
-    var nip32: String? = "",
 )

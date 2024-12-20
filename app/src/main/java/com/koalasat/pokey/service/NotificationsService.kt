@@ -281,10 +281,10 @@ class NotificationsService : Service() {
             if (existsEvent > 0) return@launch
 
             var notificationEntity = NotificationEntity(
-                0,
-                event.id,
-                userHexPub,
-                event.createdAt,
+                id = 0,
+                eventId = event.id,
+                accountKexPub = userHexPub,
+                time = event.createdAt,
             )
             notificationEntity.id = db.applicationDao().insertNotification(notificationEntity)!!
 
