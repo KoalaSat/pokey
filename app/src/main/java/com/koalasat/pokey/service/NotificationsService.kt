@@ -370,43 +370,47 @@ class NotificationsService : Service() {
             if (title.isEmpty()) return@launch
 
             NostrClient.getNip05Content(event.pubKey, onResponse = {
-                try {
-                    var authorName = it?.getString("name")
-                    if (authorName?.isNotEmpty() == true && !title.contains(authorName)) {
-                        title += " from $authorName"
-                    }
-                    avatar = it?.getString("picture").toString()
-                } catch (e: JSONException) { }
+                scope.launch {
+                    try {
+                        var authorName = it?.getString("name")
+                        if (authorName?.isNotEmpty() == true && !title.contains(authorName)) {
+                            title += " from $authorName"
+                        }
+                        avatar = it?.getString("picture").toString()
+                    } catch (e: JSONException) { }
 
-                notificationEntity.avatarUrl = avatar
-                notificationEntity.title = title
-                notificationEntity.text = text
-                notificationEntity.nip32 = nip32Bech32
-                db.applicationDao().updateNotification(notificationEntity)
+                    notificationEntity.avatarUrl = avatar
+                    notificationEntity.title = title
+                    notificationEntity.text = text
+                    notificationEntity.nip32 = nip32Bech32
+                    db.applicationDao().updateNotification(notificationEntity)
 
-                if (avatar.isEmpty()) {
-                    displayNoteNotification(userHexPub, title, text, nip32Bech32, null, event)
-                } else {
-                    val handler = Handler(Looper.getMainLooper())
-                    handler.post {
-                        Picasso.get()
-                            .load(avatar)
-                            .resize(100, 100)
-                            .centerCrop()
-                            .transform(CircleTransform())
-                            .into(object : Target {
-                                override fun onBitmapLoaded(bitmap: Bitmap, from: Picasso.LoadedFrom) {
-                                    displayNoteNotification(userHexPub, title, text, nip32Bech32, bitmap, event)
-                                }
+                    if (avatar.isEmpty()) {
+                        displayNoteNotification(userHexPub, title, text, nip32Bech32, null, event)
+                    } else {
+                        val handler = Handler(Looper.getMainLooper())
+                        handler.post {
+                            Picasso.get()
+                                .load(avatar)
+                                .resize(100, 100)
+                                .centerCrop()
+                                .transform(CircleTransform())
+                                .into(
+                                    object : Target {
+                                        override fun onBitmapLoaded(bitmap: Bitmap, from: Picasso.LoadedFrom) {
+                                            displayNoteNotification(userHexPub, title, text, nip32Bech32, bitmap, event)
+                                        }
 
-                                override fun onBitmapFailed(e: Exception, errorDrawable: Drawable?) {
-                                    displayNoteNotification(userHexPub, title, text, nip32Bech32, null, event)
-                                }
+                                        override fun onBitmapFailed(e: Exception, errorDrawable: Drawable?) {
+                                            displayNoteNotification(userHexPub, title, text, nip32Bech32, null, event)
+                                        }
 
-                                override fun onPrepareLoad(placeHolderDrawable: Drawable?) {
-                                    // Optional: Handle the loading state
-                                }
-                            })
+                                        override fun onPrepareLoad(placeHolderDrawable: Drawable?) {
+                                            // Optional: Handle the loading state
+                                        }
+                                    },
+                                )
+                        }
                     }
                 }
             })
