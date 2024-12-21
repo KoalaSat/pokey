@@ -1,6 +1,5 @@
 package com.koalasat.pokey.service
 import android.app.Notification
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -15,7 +14,10 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
+import androidx.core.app.NotificationChannelCompat
+import androidx.core.app.NotificationChannelGroupCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import com.koalasat.pokey.Connectivity
 import com.koalasat.pokey.MainActivity
 import com.koalasat.pokey.Pokey
@@ -251,12 +253,26 @@ class NotificationsService : Service() {
     }
 
     private fun createNotification(): Notification {
-        Log.d("Pokey", "Building channels...")
-        val channelRelays = NotificationChannel(channelRelaysId, getString(R.string.relays_connection), NotificationManager.IMPORTANCE_DEFAULT)
-        channelRelays.setSound(null, null)
+        val notificationManager = NotificationManagerCompat.from(this)
 
-        val channelNotification = NotificationChannel(channelNotificationsId, getString(R.string.configuration), NotificationManager.IMPORTANCE_HIGH)
-        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        Log.d("Pokey", "Building groups...")
+        val group = NotificationChannelGroupCompat.Builder("ServiceGroup")
+            .setName(getString(R.string.service))
+            .setDescription(getString(R.string.pokey_is_running_in_background))
+            .build()
+
+        notificationManager.createNotificationChannelGroup(group)
+
+        Log.d("Pokey", "Building channels...")
+        val channelRelays = NotificationChannelCompat.Builder(channelRelaysId, NotificationManager.IMPORTANCE_DEFAULT)
+            .setName(getString(R.string.relays_connection))
+            .setSound(null, null)
+            .setGroup(group.id)
+            .build()
+
+        val channelNotification = NotificationChannelCompat.Builder(channelNotificationsId, NotificationManager.IMPORTANCE_HIGH)
+            .setName(getString(R.string.configuration))
+            .build()
 
         notificationManager.createNotificationChannel(channelRelays)
         notificationManager.createNotificationChannel(channelNotification)
@@ -266,6 +282,7 @@ class NotificationsService : Service() {
             NotificationCompat.Builder(this, channelRelaysId)
                 .setContentTitle(getString(R.string.pokey_is_running_in_background))
                 .setPriority(NotificationCompat.PRIORITY_MIN)
+                .setGroup(group.id)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
 
         return notificationBuilder.build()
