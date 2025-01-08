@@ -6,7 +6,7 @@
  Display live notifications for your nostr events and allow other apps to receive and interact with them.
 
 <div align="center">
-    <img src="https://github.com/KoalaSat/pokey/blob/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="Description of Image" />
+    <img src="./app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="Description of Image" />
 </div>
 <div align="center">
     <a href="https://github.com/ImranR98/Obtainium" target="_blank">
@@ -65,6 +65,14 @@ override fun onStop() {
 }
 
 ```
+
+# Sponsors
+
+<div align="center">
+    <a href="https://opensats.org" target="_blank">
+        <img src="./docs/opensats_logo.png" alt="Get it on Obtaininum" />
+    </a>
+</div>
 
 # Kudos
 
