@@ -1,4 +1,5 @@
 package com.koalasat.pokey.service
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -32,6 +33,7 @@ import com.squareup.picasso.Picasso
 import com.squareup.picasso.Target
 import com.vitorpamplona.ammolite.relays.Client
 import com.vitorpamplona.ammolite.relays.Relay
+import com.vitorpamplona.ammolite.relays.RelayPool
 import com.vitorpamplona.quartz.encoders.Hex
 import com.vitorpamplona.quartz.encoders.LnInvoiceUtil
 import com.vitorpamplona.quartz.encoders.toNote
@@ -54,6 +56,8 @@ class NotificationsService : Service() {
     private var broadcastIntentName = "com.shared.NOSTR"
     private var channelRelaysId = "RelaysConnections"
     private var channelNotificationsId = "Notifications"
+
+    private lateinit var notificationGroup: NotificationChannelGroupCompat
 
     private val timer = Timer()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -245,6 +249,7 @@ class NotificationsService : Service() {
             object : TimerTask() {
                 override fun run() {
                     NostrClient.checkRelaysHealth(this@NotificationsService)
+                    updateNotification()
                 }
             },
             5000,
@@ -256,18 +261,18 @@ class NotificationsService : Service() {
         val notificationManager = NotificationManagerCompat.from(this)
 
         Log.d("Pokey", "Building groups...")
-        val group = NotificationChannelGroupCompat.Builder("ServiceGroup")
+        notificationGroup = NotificationChannelGroupCompat.Builder("ServiceGroup")
             .setName(getString(R.string.service))
             .setDescription(getString(R.string.pokey_is_running_in_background))
             .build()
 
-        notificationManager.createNotificationChannelGroup(group)
+        notificationManager.createNotificationChannelGroup(notificationGroup)
 
         Log.d("Pokey", "Building channels...")
         val channelRelays = NotificationChannelCompat.Builder(channelRelaysId, NotificationManager.IMPORTANCE_DEFAULT)
             .setName(getString(R.string.relays_connection))
             .setSound(null, null)
-            .setGroup(group.id)
+            .setGroup(notificationGroup.id)
             .build()
 
         val channelNotification = NotificationChannelCompat.Builder(channelNotificationsId, NotificationManager.IMPORTANCE_HIGH)
@@ -277,15 +282,31 @@ class NotificationsService : Service() {
         notificationManager.createNotificationChannel(channelRelays)
         notificationManager.createNotificationChannel(channelNotification)
 
+        return updateNotification()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun updateNotification(): Notification {
         Log.d("Pokey", "Building notification...")
+        val notificationManager =
+            getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        var activeRelays = 0
+        RelayPool.getAll().forEach {
+            if (it.isConnected()) {
+                activeRelays++
+            }
+        }
         val notificationBuilder =
             NotificationCompat.Builder(this, channelRelaysId)
                 .setContentTitle(getString(R.string.pokey_is_running_in_background))
+                .setContentText(getString(R.string.connected_relays, activeRelays.toString()))
                 .setPriority(NotificationCompat.PRIORITY_MIN)
-                .setGroup(group.id)
+                .setGroup(notificationGroup.id)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
 
-        return notificationBuilder.build()
+        val build = notificationBuilder.build()
+        notificationManager.notify(1, build)
+        return build
     }
 
     private fun createNoteNotification(event: Event) {
