@@ -59,4 +59,5 @@
     <string name="title_notifications">Notifications</string>
     <string name="no_notifications">You didn\'t receive any notification yet</string>
     <string name="service">Service</string>
+    <string name="connected_relays">%s connected relays</string>
 </resources>
