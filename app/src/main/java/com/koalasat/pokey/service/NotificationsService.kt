@@ -330,17 +330,18 @@ class NotificationsService : Service() {
             if (!event.hasVerifiedSignature()) return@launch
 
             val user = db.applicationDao().getUser(userHexPub)
+            val hexPubKey = userHexPub
 
             var title = ""
             var text = ""
-            val pubKey = userHexPub
+            var pubKey = event.pubKey
             var nip32Bech32 = ""
             var avatar = ""
 
             when (event.kind) {
                 1 -> {
                     title = when {
-                        event.content().contains("nostr:$pubKey") -> {
+                        event.content().contains("nostr:$hexPubKey") -> {
                             if (user?.notifyMentions != 1) return@launch
                             getString(R.string.new_mention)
                         }
@@ -397,6 +398,7 @@ class NotificationsService : Service() {
                             nip32Bech32 = Hex.decode(eTag.getString(1)).toNote()
 
                             val content = description.getString("content")
+                            pubKey = description.getString("pubkey")
                             if (content.isNotEmpty()) text = "$text: $content"
                         }
                     } catch (e: JSONException) {
@@ -407,7 +409,7 @@ class NotificationsService : Service() {
 
             if (title.isEmpty()) return@launch
 
-            NostrClient.getNip05Content(event.pubKey, onResponse = {
+            NostrClient.getNip05Content(pubKey, onResponse = {
                 scope.launch {
                     try {
                         var authorName = it?.getString("name")
