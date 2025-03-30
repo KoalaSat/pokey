@@ -9,11 +9,14 @@ import androidx.security.crypto.MasterKey
 
 object PrefKeys {
     const val NOSTR_BROADCAST = "broadcast"
+    const val NOSTR_MAX_PUBKEYS = "maxPubKeys"
     const val EXTERNAL_SIGNER = "external_signer"
     const val INBOX_PUBKEY = "inbox_pubkey"
 }
+
 object DefaultKeys {
     const val BROADCAST = true
+    const val MAX_PUBKEYS = 10
 }
 
 object EncryptedStorage {
@@ -26,6 +29,9 @@ object EncryptedStorage {
 
     private val _broadcast = MutableLiveData<Boolean>().apply { DefaultKeys.BROADCAST }
     val broadcast: LiveData<Boolean> get() = _broadcast
+
+    private val _maxPubKeys = MutableLiveData<Int>().apply { DefaultKeys.MAX_PUBKEYS }
+    val maxPubKeys: LiveData<Int> get() = _maxPubKeys
 
     fun init(context: Context) {
         val masterKey: MasterKey =
@@ -42,12 +48,18 @@ object EncryptedStorage {
         ) as EncryptedSharedPreferences
 
         _broadcast.postValue(sharedPreferences.getBoolean(PrefKeys.NOSTR_BROADCAST, DefaultKeys.BROADCAST))
+        _maxPubKeys.postValue(sharedPreferences.getInt(PrefKeys.NOSTR_MAX_PUBKEYS, DefaultKeys.MAX_PUBKEYS))
         _inboxPubKey.postValue(sharedPreferences.getString(PrefKeys.INBOX_PUBKEY, ""))
     }
 
     fun updateBroadcast(newValue: Boolean) {
         sharedPreferences.edit().putBoolean(PrefKeys.NOSTR_BROADCAST, newValue).apply()
         _broadcast.postValue(newValue)
+    }
+
+    fun updateMaxPubKeys(newValue: Int) {
+        sharedPreferences.edit().putInt(PrefKeys.NOSTR_MAX_PUBKEYS, newValue).apply()
+        _maxPubKeys.postValue(newValue)
     }
 
     fun updateInboxPubKey(pubKey: String) {
