@@ -60,4 +60,5 @@
     <string name="no_notifications">You didn\'t receive any notification yet</string>
     <string name="service">Service</string>
     <string name="connected_relays">%s connected relays</string>
+    <string name="max_pubkeys">Skip events with # of mentions greater than</string>
 </resources>

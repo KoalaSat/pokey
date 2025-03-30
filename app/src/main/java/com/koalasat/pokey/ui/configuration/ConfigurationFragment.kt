@@ -1,15 +1,20 @@
 package com.koalasat.pokey.ui.configuration
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.tabs.TabLayout
+import com.koalasat.pokey.R
 import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.databinding.FragmentConfigurationBinding
 import com.koalasat.pokey.models.EncryptedStorage
+import com.koalasat.pokey.utils.isDarkThemeEnabled
 import com.vitorpamplona.quartz.encoders.Hex
 import com.vitorpamplona.quartz.encoders.toNpub
 import kotlinx.coroutines.CoroutineScope
@@ -40,6 +45,20 @@ class ConfigurationFragment : Fragment() {
             viewModel.updateBroadcast(isChecked)
         }
         viewModel.broadcast.value.apply { EncryptedStorage.broadcast.value }
+
+        val textColor = if (isDarkThemeEnabled(requireContext())) R.color.white else R.color.black
+        binding.maxPubKeysText.setTextColor(ContextCompat.getColorStateList(requireContext(), textColor))
+        binding.maxPubKeysInput.setText(viewModel.maxPubKeys.value?.toString() ?: "")
+        binding.maxPubKeysInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val newValue = s.toString().toIntOrNull() ?: 0
+                viewModel.updateMaxPubKeys(newValue)
+            }
+
+            override fun afterTextChanged(s: Editable?) {}
+        })
 
         viewModel.newReplies.observe(viewLifecycleOwner) { value ->
             binding.newReplies.isChecked = value

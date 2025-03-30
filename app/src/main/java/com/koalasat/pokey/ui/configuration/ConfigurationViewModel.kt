@@ -21,6 +21,9 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
     private val _broadcast = MutableLiveData<Boolean>().apply { value = EncryptedStorage.broadcast.value }
     val broadcast: LiveData<Boolean> = _broadcast
 
+    private val _maxPubKeys = MutableLiveData<Int>().apply { value = EncryptedStorage.maxPubKeys.value }
+    val maxPubKeys: LiveData<Int> = _maxPubKeys
+
     private val _newReplies = MutableLiveData<Boolean>()
     val newReplies: LiveData<Boolean> = _newReplies
 
@@ -55,6 +58,11 @@ class ConfigurationViewModel(application: Application) : AndroidViewModel(applic
     fun updateBroadcast(value: Boolean) {
         _broadcast.postValue(value)
         EncryptedStorage.updateBroadcast(value)
+    }
+
+    fun updateMaxPubKeys(value: Int) {
+        _maxPubKeys.postValue(value)
+        EncryptedStorage.updateMaxPubKeys(value)
     }
 
     fun updateNotifyReplies(value: Boolean) {

@@ -110,9 +110,17 @@ class NotificationsService : Service() {
 
                     if (!anyUserMention) return
 
-                    createNoteNotification(event)
+                    val taggedUsers = event.taggedUsers().size
+                    val maxPubKeys: Int? = EncryptedStorage.maxPubKeys.value
+                    val notify = maxPubKeys == null || maxPubKeys == 0 || taggedUsers < maxPubKeys
 
-                    if (EncryptedStorage.broadcast.value == true) {
+                    if (notify) {
+                        createNoteNotification(event)
+                    }
+
+                    val broadcat = EncryptedStorage.broadcast.value == true
+
+                    if (broadcat) {
                         val intent = Intent(broadcastIntentName)
                         intent.putExtra("EVENT", event.toJson())
                         sendBroadcast(intent)
