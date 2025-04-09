@@ -36,6 +36,8 @@ import com.vitorpamplona.ammolite.relays.Relay
 import com.vitorpamplona.ammolite.relays.RelayPool
 import com.vitorpamplona.quartz.encoders.Hex
 import com.vitorpamplona.quartz.encoders.LnInvoiceUtil
+import com.vitorpamplona.quartz.encoders.decodePublicKey
+import com.vitorpamplona.quartz.encoders.toHexKey
 import com.vitorpamplona.quartz.encoders.toNote
 import com.vitorpamplona.quartz.encoders.toNpub
 import com.vitorpamplona.quartz.events.Event
@@ -362,7 +364,7 @@ class NotificationsService : Service() {
                             getString(R.string.new_reply)
                         }
                     }
-                    text = event.content().replace(Regex("nostr:[a-zA-Z0-9]+"), "")
+                    text = event.content
                     nip32Bech32 = Hex.decode(event.id).toNote()
                 }
                 6 -> {
@@ -417,50 +419,52 @@ class NotificationsService : Service() {
 
             if (title.isEmpty()) return@launch
 
-            NostrClient.getNip05Content(pubKey, onResponse = {
-                scope.launch {
-                    try {
-                        var authorName = it?.getString("name")
-                        if (authorName?.isNotEmpty() == true && !title.contains(authorName)) {
-                            title += " from $authorName"
-                        }
-                        avatar = it?.getString("picture").toString()
-                    } catch (e: JSONException) { }
+            replaceNpubWithNames(text, onFinished = { updatedText ->
+                NostrClient.getNip05Content(pubKey, onResponse = { nip05Content ->
+                    scope.launch {
+                        try {
+                            var authorName = nip05Content?.getString("name")
+                            if (authorName?.isNotEmpty() == true && !title.contains(authorName)) {
+                                title += " from $authorName"
+                            }
+                            avatar = nip05Content?.getString("picture").toString()
+                        } catch (e: JSONException) { }
 
-                    notificationEntity.avatarUrl = avatar
-                    notificationEntity.title = title
-                    notificationEntity.text = text
-                    notificationEntity.nip32 = nip32Bech32
-                    db.applicationDao().updateNotification(notificationEntity)
+                        notificationEntity.avatarUrl = avatar
+                        notificationEntity.title = title
+                        notificationEntity.text = updatedText
+                        notificationEntity.nip32 = nip32Bech32
+                        db.applicationDao().updateNotification(notificationEntity)
 
-                    if (avatar.isEmpty()) {
-                        displayNoteNotification(userHexPub, title, text, nip32Bech32, null, event)
-                    } else {
-                        val handler = Handler(Looper.getMainLooper())
-                        handler.post {
-                            Picasso.get()
-                                .load(avatar)
-                                .resize(100, 100)
-                                .centerCrop()
-                                .transform(CircleTransform())
-                                .into(
-                                    object : Target {
-                                        override fun onBitmapLoaded(bitmap: Bitmap, from: Picasso.LoadedFrom) {
-                                            displayNoteNotification(userHexPub, title, text, nip32Bech32, bitmap, event)
-                                        }
+                        if (avatar.isEmpty()) {
+                            displayNoteNotification(userHexPub, title, updatedText, nip32Bech32, null, event)
+                        } else {
+                            val handler = Handler(Looper.getMainLooper())
+                            handler.post {
+                                Picasso.get()
+                                    .load(avatar)
+                                    .resize(100, 100)
+                                    .centerCrop()
+                                    .transform(CircleTransform())
+                                    .into(
+                                        object : Target {
+                                            override fun onBitmapLoaded(bitmap: Bitmap, from: Picasso.LoadedFrom) {
+                                                displayNoteNotification(userHexPub, title, updatedText, nip32Bech32, bitmap, event)
+                                            }
 
-                                        override fun onBitmapFailed(e: Exception, errorDrawable: Drawable?) {
-                                            displayNoteNotification(userHexPub, title, text, nip32Bech32, null, event)
-                                        }
+                                            override fun onBitmapFailed(e: Exception, errorDrawable: Drawable?) {
+                                                displayNoteNotification(userHexPub, title, updatedText, nip32Bech32, null, event)
+                                            }
 
-                                        override fun onPrepareLoad(placeHolderDrawable: Drawable?) {
-                                            // Optional: Handle the loading state
-                                        }
-                                    },
-                                )
+                                            override fun onPrepareLoad(placeHolderDrawable: Drawable?) {
+                                                // Optional: Handle the loading state
+                                            }
+                                        },
+                                    )
+                            }
                         }
                     }
-                }
+                })
             })
         }
     }
@@ -507,5 +511,35 @@ class NotificationsService : Service() {
 
         notificationManager.notify(event.id.hashCode(), builder.build())
         Pokey.updateNewPrivateRelay(event.createdAt)
+    }
+
+    fun replaceNpubWithNames(text: String, onFinished: (text: String) -> Unit) {
+        val nostrMentionsRegex = Regex("nostr:([a-zA-Z0-9]+)")
+        val uniqueMatches = nostrMentionsRegex.findAll(text)
+            .map { it.groupValues[1] }
+            .toSet()
+
+        val totalMatches = uniqueMatches.size
+
+        if (totalMatches > 0) {
+            var completedRequests = 0
+            var updatedText = text
+
+            for (match in uniqueMatches) {
+                val hexPubKey = decodePublicKey(match).toHexKey().toString()
+                NostrClient.getNip05Content(hexPubKey) { response ->
+                    val replacement = response?.getString("name") ?: "unknown"
+                    updatedText = updatedText.replace("nostr:$match", "@$replacement")
+
+                    completedRequests++
+
+                    if (completedRequests == totalMatches) {
+                        onFinished(updatedText)
+                    }
+                }
+            }
+        } else {
+            onFinished(text)
+        }
     }
 }
