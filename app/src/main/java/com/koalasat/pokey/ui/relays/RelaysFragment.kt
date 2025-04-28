@@ -70,6 +70,7 @@ class RelaysFragment : Fragment() {
                         }
                     }
                 }
+                binding.activeAccount.visibility = View.VISIBLE
                 binding.titleRelays.visibility = View.GONE
             } else {
                 binding.activeAccount.visibility = View.GONE
@@ -158,6 +159,7 @@ class RelaysFragment : Fragment() {
                 binding.privateRelaysLoading.visibility = View.GONE
             }
             loadRelays()
+            privateRelaysView.adapter?.notifyDataSetChanged()
         }
 
         publicRelaysView = root.findViewById(R.id.public_relays)

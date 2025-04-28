@@ -108,13 +108,22 @@ class NotificationsService : Service() {
                 if (processedEvents.putIfAbsent(event.id, true) == null) {
                     Log.d("Pokey", "Relay Event: ${relay.url} - $subscriptionId - ${event.toJson()}")
 
+                    if (intArrayOf(10002, 10050).contains(event.kind)) {
+                        NostrClient.manageInboxRelays(this@NotificationsService, event)
+                        return
+                    }
+                    if (intArrayOf(10000).contains(event.kind)) {
+                        NostrClient.manageMuteList(this@NotificationsService, event)
+                        return
+                    }
+
                     val anyUserMention = event.taggedUsers().any { it in hexPubKeysList }
 
                     if (!anyUserMention) return
 
                     val taggedUsers = event.taggedUsers().size
                     val maxPubKeys: Int? = EncryptedStorage.maxPubKeys.value
-                    val notify = maxPubKeys == null || maxPubKeys == 0 || taggedUsers < maxPubKeys
+                    val notify = maxPubKeys == null || maxPubKeys == 0 || taggedUsers <= maxPubKeys
 
                     if (notify) {
                         createNoteNotification(event)
@@ -420,7 +429,7 @@ class NotificationsService : Service() {
             if (title.isEmpty()) return@launch
 
             replaceNpubWithNames(text, onFinished = { updatedText ->
-                NostrClient.getNip05Content(pubKey, onResponse = { nip05Content ->
+                NostrClient.getNip05Content(pubKey, this@NotificationsService, onResponse = { nip05Content ->
                     scope.launch {
                         try {
                             var authorName = nip05Content?.getString("name")
@@ -446,6 +455,7 @@ class NotificationsService : Service() {
                                     .resize(100, 100)
                                     .centerCrop()
                                     .transform(CircleTransform())
+                                    .error(R.mipmap.ic_launcher)
                                     .into(
                                         object : Target {
                                             override fun onBitmapLoaded(bitmap: Bitmap, from: Picasso.LoadedFrom) {
@@ -527,7 +537,7 @@ class NotificationsService : Service() {
 
             for (match in uniqueMatches) {
                 val hexPubKey = decodePublicKey(match).toHexKey().toString()
-                NostrClient.getNip05Content(hexPubKey) { response ->
+                NostrClient.getNip05Content(hexPubKey, this@NotificationsService) { response ->
                     val replacement = response?.getString("name") ?: "unknown"
                     updatedText = updatedText.replace("nostr:$match", "@$replacement")
 

@@ -31,24 +31,21 @@ class NotificationListAdapter(
             titleView.text = notificationEntity.title
             textView.text = notificationEntity.text
 
-            if (notificationEntity.avatarUrl?.isNotEmpty() == true) {
-                Picasso.get()
-                    .load(notificationEntity.avatarUrl)
-                    .resize(124, 124)
-                    .centerCrop()
-                    .transform(CircleTransform())
-                    .into(userAvatarView)
-            }
-            if (notificationEntity.accountKexPub.isNotEmpty() == true) {
-                if (userEntity?.avatar?.isNotEmpty() == true) {
-                    Picasso.get()
-                        .load(userEntity.avatar)
-                        .resize(124, 124)
-                        .centerCrop()
-                        .transform(CircleTransform())
-                        .into(accountAvatarView)
-                }
-            }
+            Picasso.get()
+                .load(notificationEntity.avatarUrl)
+                .resize(124, 124)
+                .centerCrop()
+                .transform(CircleTransform())
+                .error(R.mipmap.ic_launcher)
+                .into(userAvatarView)
+
+            Picasso.get()
+                .load(userEntity?.avatar)
+                .resize(124, 124)
+                .centerCrop()
+                .transform(CircleTransform())
+                .error(R.mipmap.ic_launcher)
+                .into(accountAvatarView)
         }
     }
 
