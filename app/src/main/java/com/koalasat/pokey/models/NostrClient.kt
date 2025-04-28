@@ -24,14 +24,16 @@ import com.vitorpamplona.quartz.events.Event
 import com.vitorpamplona.quartz.utils.TimeUtils
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 
 object NostrClient {
-    private var subscriptionNotificationId = "pokeySubscriptionNotificationId"
-    private var subscriptionMuteId = "pokeyMuteList"
-    private var subscriptionInboxId = "pokeyInboxRelays"
-    private var subscriptionReadId = "pokeyReadRelays"
+    private var subscriptionNotificationId = "pokeyNotificationId"
+    private var subscriptionPrivateMessagId = "pokeyPrivateMessage"
+    private var subscriptionLists = "pokeyLists"
     private var subscriptionMetaId = "pokeyMeta"
 
     private var usersNip05 = ConcurrentHashMap<String, JSONObject>()
@@ -54,8 +56,7 @@ object NostrClient {
 
     fun start(context: Context) {
         connectRelays(context)
-        getInboxLists(context)
-        getMuteList(context)
+        getLists(context)
         subscribeToInbox(context)
     }
 
@@ -108,7 +109,7 @@ object NostrClient {
                         activeTypes = COMMON_FEED_TYPES,
                     ),
                 )
-                getInboxLists(context)
+                getLists(context)
                 subscribeToInbox(context)
             }
         }
@@ -128,9 +129,23 @@ object NostrClient {
                 TypedFilter(
                     types = COMMON_FEED_TYPES,
                     filter = SincePerRelayFilter(
-                        kinds = listOf(1, 4, 6, 7, 1059, 9735),
+                        kinds = listOf(1, 4, 6, 7, 9735),
                         tags = mapOf("p" to authors),
                         since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification) },
+                    ),
+                ),
+            ),
+        )
+
+        Client.sendFilter(
+            subscriptionPrivateMessagId,
+            listOf(
+                TypedFilter(
+                    types = COMMON_FEED_TYPES,
+                    filter = SincePerRelayFilter(
+                        kinds = listOf(1059),
+                        tags = mapOf("p" to authors),
+                        since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification - (2 * 24 * 60 * 60)) },
                     ),
                 ),
             ),
@@ -140,8 +155,8 @@ object NostrClient {
     fun reconnectInbox(hexPubKey: String, context: Context, kind: Int) {
         val db = AppDatabase.getDatabase(context, "common")
         db.applicationDao().deleteRelaysByKind(kind, hexPubKey)
-        Client.close(subscriptionInboxId)
-        getInboxLists(context)
+        Client.close(subscriptionLists)
+        getLists(context)
     }
 
     fun publishPrivateRelays(hexPubKey: String, context: Context) {
@@ -263,18 +278,31 @@ object NostrClient {
         }
     }
 
-    fun getNip05Content(hexPubKey: String, onResponse: (JSONObject?) -> Unit) {
+    fun getNip05Content(hexPubKey: String, context: Context, onResponse: (JSONObject?) -> Unit) {
         if (usersNip05.containsKey(hexPubKey)) {
             onResponse(usersNip05.getValue(hexPubKey))
         } else {
             val handler = Handler(Looper.getMainLooper())
             val timeoutRunnable = Runnable {
-                onResponse(null)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val db = AppDatabase.getDatabase(context, "common")
+                    val user = db.applicationDao().getUser(hexPubKey)
+
+                    if (user != null) {
+                        val content = JSONObject()
+                        content.put("name", user.name)
+                        content.put("avatar", user.avatar)
+                        content.put("createdAt", user.createdAt)
+                        onResponse(content)
+                    } else {
+                        onResponse(null)
+                    }
+                }
             }
             handler.postDelayed(timeoutRunnable, 5000)
 
             Client.sendFilterAndStopOnFirstResponse(
-                subscriptionMetaId,
+                subscriptionMetaId + hexPubKey.substring(0, 6),
                 listOf(
                     TypedFilter(
                         types = EVENT_FINDER_TYPES,
@@ -319,56 +347,22 @@ object NostrClient {
         return null
     }
 
-    private fun getInboxLists(context: Context) {
+    private fun getLists(context: Context) {
         val db = AppDatabase.getDatabase(context, "common")
         val users = db.applicationDao().getUsers()
         val authors = users.map { it.hexPub }
 
-        Client.sendFilterAndStopOnFirstResponse(
-            subscriptionReadId,
+        Client.sendFilter(
+            subscriptionLists,
             listOf(
                 TypedFilter(
-                    types = EVENT_FINDER_TYPES,
+                    types = COMMON_FEED_TYPES,
                     filter = SincePerRelayFilter(
-                        kinds = listOf(10002),
+                        kinds = listOf(10000, 10002, 10050),
                         authors = authors,
                     ),
                 ),
             ),
-            onResponse = { manageInboxRelays(context, it) },
-        )
-        Client.sendFilterAndStopOnFirstResponse(
-            subscriptionInboxId,
-            listOf(
-                TypedFilter(
-                    types = EVENT_FINDER_TYPES,
-                    filter = SincePerRelayFilter(
-                        kinds = listOf(10050),
-                        authors = authors,
-                    ),
-                ),
-            ),
-            onResponse = { manageInboxRelays(context, it) },
-        )
-    }
-
-    private fun getMuteList(context: Context) {
-        val db = AppDatabase.getDatabase(context, "common")
-        val users = db.applicationDao().getUsers()
-        val authors = users.map { it.hexPub }
-
-        Client.sendFilterAndStopOnFirstResponse(
-            subscriptionMuteId,
-            listOf(
-                TypedFilter(
-                    types = EVENT_FINDER_TYPES,
-                    filter = SincePerRelayFilter(
-                        kinds = listOf(10000),
-                        authors = authors,
-                    ),
-                ),
-            ),
-            onResponse = { manageMuteList(context, it) },
         )
     }
 
@@ -396,7 +390,7 @@ object NostrClient {
         }
     }
 
-    private fun manageInboxRelays(context: Context, event: Event) {
+    fun manageInboxRelays(context: Context, event: Event) {
         val db = AppDatabase.getDatabase(context, "common")
         val lastCreatedRelayAt = db.applicationDao().getLatestRelaysByKind(event.kind, event.pubKey)
 
@@ -427,7 +421,7 @@ object NostrClient {
         }
     }
 
-    private fun manageMuteList(context: Context, event: Event) {
+    fun manageMuteList(context: Context, event: Event) {
         val db = AppDatabase.getDatabase(context, "common")
         savePrivateMuteList(context, event.content)
         db.applicationDao().deleteMuteList(event.kind, event.pubKey)

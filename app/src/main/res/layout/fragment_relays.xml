@@ -15,10 +15,10 @@
         android:paddingRight="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.5">
+        app:layout_constraintVertical_bias="0.0">
 
         <ScrollView
             android:layout_width="match_parent"
@@ -34,7 +34,6 @@
                     android:id="@+id/title_relays"
                     android:layout_width="match_parent"
                     android:layout_height="39dp"
-                    android:layout_marginBottom="40dp"
                     android:hint="@string/not_started"
                     android:textAlignment="center"
                     android:textSize="20sp" />
@@ -42,8 +41,8 @@
                 <Button
                     android:id="@+id/active_account"
                     android:layout_width="match_parent"
-                    android:layout_marginBottom="40dp"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="40dp" />
 
                 <TextView
                     android:id="@+id/title_public_inbox"
