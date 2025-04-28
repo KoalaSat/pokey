@@ -39,7 +39,6 @@
                     android:id="@+id/addAccount"
                     android:layout_width="0dp"
                     android:layout_height="90dp"
-                    android:layout_gravity="center"
                     android:background="@android:color/transparent"
                     android:drawableTop="@drawable/ic_add_circle_24dp"
                     app:layout_columnWeight="1" />
