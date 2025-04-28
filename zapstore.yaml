@@ -6,4 +6,4 @@ pokey:
     repository: https://github.com/koalasat/pokey
     license: MIT
     artifacts:
-      - pokey-universal-v%v-alpha.apk
+      - pokey-universal-v%v-beta.apk
