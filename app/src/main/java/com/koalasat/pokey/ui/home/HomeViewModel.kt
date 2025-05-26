@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.database.UserEntity
+import com.koalasat.pokey.models.EncryptedStorage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -18,11 +19,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _accountList = MutableLiveData<List<UserEntity>>().apply { emptyList<UserEntity>() }
     val accountList: LiveData<List<UserEntity>> get() = _accountList
 
+    private val _subscription = MutableLiveData<String>().apply { EncryptedStorage.inboxSubscription.value }
+    val subscription: LiveData<String> get() = _subscription
+
     private val _serviceStart = MutableLiveData<Boolean>()
     val serviceStart: LiveData<Boolean> get() = _serviceStart
 
     init {
         _serviceStart.postValue(Pokey.isEnabled.value)
+
+        EncryptedStorage.inboxSubscription.observeForever { value ->
+            _subscription.postValue(value)
+        }
 
         loadAccounts()
     }

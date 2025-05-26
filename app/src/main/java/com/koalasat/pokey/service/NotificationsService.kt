@@ -119,8 +119,9 @@ class NotificationsService : Service() {
 
                     val anyUserMention = event.taggedUsers().any { it in hexPubKeysList }
                     val anyUserNote = event.pubKey in hexPubKeysList
+                    val anySubscription = NostrClient.noteIsSubscription(event)
 
-                    if (!anyUserMention || anyUserNote) return
+                    if ((!anyUserMention && !anySubscription) || anyUserNote) return
 
                     val taggedUsers = event.taggedUsers().size
                     val maxPubKeys: Int? = EncryptedStorage.maxPubKeys.value
@@ -128,15 +129,14 @@ class NotificationsService : Service() {
 
                     if (notify) {
                         createNoteNotification(event)
-                    }
+                        val broadcat = EncryptedStorage.broadcast.value == true
 
-                    val broadcat = EncryptedStorage.broadcast.value == true
-
-                    if (broadcat) {
-                        val intent = Intent(broadcastIntentName)
-                        intent.putExtra("EVENT", event.toJson())
-                        sendBroadcast(intent)
-                        Log.d("Pokey", "Relay Event: ${relay.url} - $subscriptionId - Broadcast")
+                        if (broadcat) {
+                            val intent = Intent(broadcastIntentName)
+                            intent.putExtra("EVENT", event.toJson())
+                            sendBroadcast(intent)
+                            Log.d("Pokey", "Relay Event: ${relay.url} - $subscriptionId - Broadcast")
+                        }
                     }
                 }
             }
@@ -331,26 +331,25 @@ class NotificationsService : Service() {
 
     private fun createNoteNotification(event: Event) {
         CoroutineScope(Dispatchers.IO).launch {
-            val userHexPub = event.taggedUsers().find { it in hexPubKeysList }
-            if (userHexPub?.isNotEmpty() != true) return@launch
-
             val db = AppDatabase.getDatabase(this@NotificationsService, "common")
             val existsEvent = db.applicationDao().existsNotification(event.id)
             if (existsEvent > 0) return@launch
 
+            val notificationHexPub = event.taggedUsers().find { it in hexPubKeysList }
+
             var notificationEntity = NotificationEntity(
                 id = 0,
                 eventId = event.id,
-                accountKexPub = userHexPub,
+                accountKexPub = event.pubKey,
                 time = event.createdAt,
             )
             notificationEntity.id = db.applicationDao().insertNotification(notificationEntity)!!
 
-            if (event.firstTaggedEvent()?.isNotEmpty() == true && db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString(), userHexPub) == 1) return@launch
+            if (event.firstTaggedEvent()?.isNotEmpty() == true && db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString(), event.pubKey) == 1) return@launch
             if (!event.hasVerifiedSignature()) return@launch
 
-            val user = db.applicationDao().getUser(userHexPub)
-            val hexPubKey = userHexPub
+            val user = db.applicationDao().getUser(notificationHexPub.toString())
+            val hexPubKey = event.pubKey
 
             var title = ""
             var text = ""
@@ -362,35 +361,39 @@ class NotificationsService : Service() {
                 1 -> {
                     title = when {
                         event.content().contains("nostr:$hexPubKey") -> {
-                            if (user?.notifyMentions != 1) return@launch
+                            if (user != null && user.notifyMentions != 1) return@launch
                             getString(R.string.new_mention)
                         }
                         event.content().contains("nostr:nevent1") -> {
-                            if (user?.notifyQuotes != 1) return@launch
+                            if (user != null && user.notifyQuotes != 1) return@launch
                             getString(R.string.new_quote)
                         }
                         else -> {
-                            if (user?.notifyReplies != 1) return@launch
-                            getString(R.string.new_reply)
+                            if (user == null) {
+                                getString(R.string.new_post)
+                            } else {
+                                if (user.notifyReplies != 1) return@launch
+                                getString(R.string.new_reply)
+                            }
                         }
                     }
                     text = event.content
                     nip32Bech32 = Hex.decode(event.id).toNote()
                 }
                 6 -> {
-                    if (user?.notifyReposts != 1) return@launch
+                    if (user != null && user.notifyReposts != 1) return@launch
 
                     title = getString(R.string.new_repost)
                     nip32Bech32 = Hex.decode(event.id).toNote()
                 }
                 4, 1059 -> {
-                    if (user?.notifyPrivate != 1) return@launch
+                    if (user != null && user.notifyPrivate != 1) return@launch
 
                     title = getString(R.string.new_private)
                     nip32Bech32 = Hex.decode(event.pubKey).toNpub()
                 }
                 7 -> {
-                    if (user?.notifyReactions != 1) return@launch
+                    if (user != null && user.notifyReactions != 1) return@launch
 
                     title = getString(R.string.new_reaction)
                     text = if (event.content.isEmpty() || event.content == "+") {
@@ -402,7 +405,7 @@ class NotificationsService : Service() {
                     nip32Bech32 = Hex.decode(taggedEvent).toNote()
                 }
                 9735 -> {
-                    if (user?.notifyZaps != 1) return@launch
+                    if (user != null && user.notifyZaps != 1) return@launch
 
                     title = getString(R.string.new_zap)
                     val bolt11 = event.firstTag("bolt11")
@@ -447,7 +450,7 @@ class NotificationsService : Service() {
                         db.applicationDao().updateNotification(notificationEntity)
 
                         if (avatar.isEmpty()) {
-                            loadImage(userHexPub, title, updatedText, nip32Bech32, null, event)
+                            loadImage(event.pubKey, title, updatedText, nip32Bech32, null, event)
                         } else {
                             val handler = Handler(Looper.getMainLooper())
                             handler.post {
@@ -460,11 +463,11 @@ class NotificationsService : Service() {
                                     .into(
                                         object : Target {
                                             override fun onBitmapLoaded(bitmap: Bitmap, from: Picasso.LoadedFrom) {
-                                                loadImage(userHexPub, title, updatedText, nip32Bech32, bitmap, event)
+                                                loadImage(event.pubKey, title, updatedText, nip32Bech32, bitmap, event)
                                             }
 
                                             override fun onBitmapFailed(e: Exception, errorDrawable: Drawable?) {
-                                                loadImage(userHexPub, title, updatedText, nip32Bech32, null, event)
+                                                loadImage(event.pubKey, title, updatedText, nip32Bech32, null, event)
                                             }
 
                                             override fun onPrepareLoad(placeHolderDrawable: Drawable?) {

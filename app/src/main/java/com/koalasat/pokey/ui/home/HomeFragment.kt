@@ -12,6 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupMenu
@@ -47,7 +48,7 @@ class HomeFragment : Fragment() {
     private val binding get() = _binding!!
     private val viewModel: HomeViewModel by viewModels()
 
-    @SuppressLint("SetTextI18n")
+    @SuppressLint("SetTextI18n", "ResourceAsColor")
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -114,6 +115,17 @@ class HomeFragment : Fragment() {
             }
         }
 
+        homeViewModel.subscription.observeForever { value ->
+            if (_binding != null) {
+                if (value.isNotEmpty()) {
+                    val text = value?.substring(0, 10) + "..."
+                    binding.addSubscription.text = text
+                } else {
+                    binding.addSubscription.visibility = View.VISIBLE
+                }
+            }
+        }
+
         return binding.root
     }
 
@@ -124,11 +136,16 @@ class HomeFragment : Fragment() {
             showAddAccountDialog()
         }
 
+        binding.addSubscription.setOnClickListener {
+            showAddASubscriptionDialog()
+        }
+
         binding.serviceStart.setOnClickListener {
             CoroutineScope(Dispatchers.IO).launch {
                 val dao = AppDatabase.getDatabase(requireContext(), "common").applicationDao()
                 val users = dao.getUsers()
-                if (users.isNotEmpty() || viewModel.serviceStart.value == true) {
+                val subscription = EncryptedStorage.inboxSubscription.value
+                if ((users.isNotEmpty() || subscription?.isNotEmpty() == true) || viewModel.serviceStart.value == true) {
                     viewModel.updateServiceStart(!viewModel.serviceStart.value!!)
                 } else {
                     withContext(Dispatchers.Main) {
@@ -143,7 +160,7 @@ class HomeFragment : Fragment() {
                 val typedValue = TypedValue()
                 requireContext().theme.resolveAttribute(android.R.attr.colorButtonNormal, typedValue, true)
                 binding.serviceStart.text = getString(R.string.stop)
-                updateAddAccountButton(R.color.grey)
+                updateAddButtons(R.color.grey)
                 CoroutineScope(Dispatchers.IO).launch {
                     val dao = AppDatabase.getDatabase(requireContext(), "common").applicationDao()
                     for (user in dao.getUsers()) {
@@ -155,7 +172,7 @@ class HomeFragment : Fragment() {
                 requireContext().theme.resolveAttribute(android.R.attr.colorPrimary, typedValue, true)
                 binding.serviceStart.text = getString(R.string.start)
                 val color = if (isDarkThemeEnabled(requireContext())) R.color.purple_200 else R.color.purple_500
-                updateAddAccountButton(color)
+                updateAddButtons(color)
             }
         }
     }
@@ -202,6 +219,53 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private fun showAddASubscriptionDialog() {
+        if (Pokey.isEnabled.value == true) {
+            Toast.makeText(requireContext(), getString(R.string.stopPokey), Toast.LENGTH_SHORT).show()
+        } else {
+            val inflater = LayoutInflater.from(requireContext())
+            val dialogView: View = inflater.inflate(R.layout.fragment_add_subscription, null)
+
+            val builder = AlertDialog.Builder(requireContext())
+            builder.setView(dialogView)
+            val dialog = builder.create()
+
+            val subscriptionInput: EditText = dialogView.findViewById(R.id.subscription_input)
+            val buttonSubmitSubscription: Button = dialogView.findViewById(R.id.submitSubscription)
+            val buttonDeleteSubscription: Button = dialogView.findViewById(R.id.deleteSubscription)
+            val helpButton: ImageButton = dialogView.findViewById(R.id.help_button)
+
+            helpButton.setOnClickListener {
+                Toast.makeText(requireContext(), getString(R.string.subscription_hint), Toast.LENGTH_LONG).show()
+            }
+
+            buttonSubmitSubscription.setOnClickListener {
+                val input = subscriptionInput.text.toString()
+                val (type, result) = when {
+                    input.startsWith("npub", ignoreCase = true) -> NostrClient.parseBech32(input)
+                    input.startsWith("nevent", ignoreCase = true) -> NostrClient.parseBech32(input)
+                    input.startsWith("#") -> Pair("hashtag", input)
+                    else -> Pair(null, null)
+                }
+
+                if (type != null && result != null) {
+                    subscriptionInput.error = null
+                    dialog.hide()
+                    createSubscription(input)
+                } else {
+                    subscriptionInput.error = getString(R.string.invalid_input)
+                }
+            }
+            buttonDeleteSubscription.setOnClickListener {
+                EncryptedStorage.updateInboxSubscription("")
+                binding.addSubscription.text = getString(R.string.create_subscription)
+                dialog.hide()
+            }
+
+            dialog.show()
+        }
+    }
+
     private fun loadAvatar(avatar: String?, imageView: ImageView) {
         if (avatar?.isNotEmpty() != true) return
 
@@ -237,11 +301,20 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun updateAddAccountButton(color: Int) {
+    private fun createSubscription(value: String) {
+        if (value.isNotEmpty() != true) return
+
+        CoroutineScope(Dispatchers.IO).launch {
+            EncryptedStorage.updateInboxSubscription(value)
+        }
+    }
+
+    private fun updateAddButtons(color: Int) {
         binding.addAccount.compoundDrawables[1]?.setColorFilter(
             ContextCompat.getColor(requireContext(), color),
             PorterDuff.Mode.SRC_IN,
         )
+        binding.addSubscription.setBackgroundColor(ContextCompat.getColor(requireContext(), color))
     }
 
     private fun showUserPopupMenu(view: View, user: UserEntity) {

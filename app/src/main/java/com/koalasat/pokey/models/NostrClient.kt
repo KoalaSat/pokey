@@ -31,6 +31,7 @@ import org.json.JSONException
 import org.json.JSONObject
 
 object NostrClient {
+    private var subscriptionSubscriptionId = "pokeySubscriptionId"
     private var subscriptionNotificationId = "pokeyNotificationId"
     private var subscriptionPrivateMessagId = "pokeyPrivateMessage"
     private var subscriptionLists = "pokeyLists"
@@ -123,33 +124,76 @@ object NostrClient {
         val users = db.applicationDao().getUsers()
         val authors = users.map { it.hexPub }
 
-        Client.sendFilter(
-            subscriptionNotificationId,
-            listOf(
-                TypedFilter(
-                    types = COMMON_FEED_TYPES,
-                    filter = SincePerRelayFilter(
-                        kinds = listOf(1, 4, 6, 7, 9735),
-                        tags = mapOf("p" to authors),
-                        since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification) },
+        if (authors.isNotEmpty()) {
+            Client.sendFilter(
+                subscriptionNotificationId,
+                listOf(
+                    TypedFilter(
+                        types = COMMON_FEED_TYPES,
+                        filter = SincePerRelayFilter(
+                            kinds = listOf(1, 4, 6, 7, 9735),
+                            tags = mapOf("p" to authors),
+                            since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification) },
+                        ),
                     ),
                 ),
-            ),
-        )
+            )
 
-        Client.sendFilter(
-            subscriptionPrivateMessagId,
-            listOf(
-                TypedFilter(
-                    types = COMMON_FEED_TYPES,
-                    filter = SincePerRelayFilter(
-                        kinds = listOf(1059),
-                        tags = mapOf("p" to authors),
-                        since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification - (2 * 24 * 60 * 60)) },
+            Client.sendFilter(
+                subscriptionPrivateMessagId,
+                listOf(
+                    TypedFilter(
+                        types = COMMON_FEED_TYPES,
+                        filter = SincePerRelayFilter(
+                            kinds = listOf(1059),
+                            tags = mapOf("p" to authors),
+                            since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification - (2 * 24 * 60 * 60)) },
+                        ),
                     ),
                 ),
-            ),
-        )
+            )
+        }
+
+        var subscription = EncryptedStorage.inboxSubscription.value
+
+        if (subscription?.isNotEmpty() == true) {
+            val (type, result) = when {
+                subscription.startsWith("npub", ignoreCase = true) -> parseBech32(subscription)
+                subscription.startsWith("nevent", ignoreCase = true) -> parseBech32(subscription)
+                subscription.startsWith("#") -> Pair("hashtag", subscription.replace("#", ""))
+                else -> Pair(null, null)
+            }
+
+            if (type != null && result != null) {
+                val tags = when (type) {
+                    "nevent" -> mapOf(Pair("e", listOf(result)))
+                    "hashtag" -> mapOf(Pair("t", listOf(result)))
+                    else -> null
+                }
+
+                var authors = when (type) {
+                    "npub" -> listOf(result)
+                    else -> null
+                }
+
+                if (tags != null || authors != null) {
+                    Client.sendFilter(
+                        subscriptionSubscriptionId,
+                        listOf(
+                            TypedFilter(
+                                types = COMMON_FEED_TYPES,
+                                filter = SincePerRelayFilter(
+                                    kinds = listOf(1),
+                                    authors = authors,
+                                    tags = tags,
+                                    since = RelayPool.getAll().associate { it.url to EOSETime(latestNotification) },
+                                ),
+                            ),
+                        ),
+                    )
+                }
+            }
+        }
     }
 
     fun reconnectInbox(hexPubKey: String, context: Context, kind: Int) {
@@ -347,23 +391,42 @@ object NostrClient {
         return null
     }
 
+    fun parseBech32(value: String?): Pair<String?, String?> {
+        if (value?.isEmpty() == true) return Pair(null, null)
+
+        val parseReturn = uriToRoute(value)
+
+        when (val parsed = parseReturn?.entity) {
+            is Nip19Bech32.NPub -> {
+                return Pair("npub", parsed.hex)
+            }
+            is Nip19Bech32.NEvent -> {
+                return Pair("nevent", parsed.hex)
+            }
+        }
+
+        return Pair(null, null)
+    }
+
     private fun getLists(context: Context) {
         val db = AppDatabase.getDatabase(context, "common")
         val users = db.applicationDao().getUsers()
         val authors = users.map { it.hexPub }
 
-        Client.sendFilter(
-            subscriptionLists,
-            listOf(
-                TypedFilter(
-                    types = COMMON_FEED_TYPES,
-                    filter = SincePerRelayFilter(
-                        kinds = listOf(10000, 10002, 10050),
-                        authors = authors,
+        if (authors.isNotEmpty()) {
+            Client.sendFilter(
+                subscriptionLists,
+                listOf(
+                    TypedFilter(
+                        types = COMMON_FEED_TYPES,
+                        filter = SincePerRelayFilter(
+                            kinds = listOf(10000, 10002, 10050),
+                            authors = authors,
+                        ),
                     ),
                 ),
-            ),
-        )
+            )
+        }
     }
 
     private fun connectRelays(context: Context) {
@@ -443,5 +506,26 @@ object NostrClient {
         val editor = sharedPreferences.edit()
         editor.putString("private_mute_list", value)
         editor.apply()
+    }
+
+    fun noteIsSubscription(event: Event): Boolean {
+        var subscription = EncryptedStorage.inboxSubscription.value
+
+        if (subscription?.isNotEmpty() == true) {
+            val (type, result) = when {
+                subscription.startsWith("npub", ignoreCase = true) -> parseBech32(subscription)
+                subscription.startsWith("nevent", ignoreCase = true) -> parseBech32(subscription)
+                subscription.startsWith("#") -> Pair("hashtag", subscription.replace("#", ""))
+                else -> Pair(null, null)
+            }
+            return when (type) {
+                "npub" -> event.pubKey == result
+                "nevent" -> event.taggedEvents().contains(result)
+                "hashtag" -> event.isTaggedHash(result.toString())
+                else -> false
+            }
+        } else {
+            return false
+        }
     }
 }
