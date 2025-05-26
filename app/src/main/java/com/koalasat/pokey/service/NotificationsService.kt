@@ -118,8 +118,9 @@ class NotificationsService : Service() {
                     }
 
                     val anyUserMention = event.taggedUsers().any { it in hexPubKeysList }
+                    val anyUserNote = event.pubKey in hexPubKeysList
 
-                    if (!anyUserMention) return
+                    if (!anyUserMention || anyUserNote) return
 
                     val taggedUsers = event.taggedUsers().size
                     val maxPubKeys: Int? = EncryptedStorage.maxPubKeys.value
@@ -331,7 +332,7 @@ class NotificationsService : Service() {
     private fun createNoteNotification(event: Event) {
         CoroutineScope(Dispatchers.IO).launch {
             val userHexPub = event.taggedUsers().find { it in hexPubKeysList }
-            if (userHexPub?.isNotEmpty() != true || userHexPub == event.pubKey) return@launch
+            if (userHexPub?.isNotEmpty() != true) return@launch
 
             val db = AppDatabase.getDatabase(this@NotificationsService, "common")
             val existsEvent = db.applicationDao().existsNotification(event.id)
@@ -446,7 +447,7 @@ class NotificationsService : Service() {
                         db.applicationDao().updateNotification(notificationEntity)
 
                         if (avatar.isEmpty()) {
-                            displayNoteNotification(userHexPub, title, updatedText, nip32Bech32, null, event)
+                            loadImage(userHexPub, title, updatedText, nip32Bech32, null, event)
                         } else {
                             val handler = Handler(Looper.getMainLooper())
                             handler.post {
@@ -459,11 +460,11 @@ class NotificationsService : Service() {
                                     .into(
                                         object : Target {
                                             override fun onBitmapLoaded(bitmap: Bitmap, from: Picasso.LoadedFrom) {
-                                                displayNoteNotification(userHexPub, title, updatedText, nip32Bech32, bitmap, event)
+                                                loadImage(userHexPub, title, updatedText, nip32Bech32, bitmap, event)
                                             }
 
                                             override fun onBitmapFailed(e: Exception, errorDrawable: Drawable?) {
-                                                displayNoteNotification(userHexPub, title, updatedText, nip32Bech32, null, event)
+                                                loadImage(userHexPub, title, updatedText, nip32Bech32, null, event)
                                             }
 
                                             override fun onPrepareLoad(placeHolderDrawable: Drawable?) {
@@ -479,7 +480,29 @@ class NotificationsService : Service() {
         }
     }
 
-    private fun displayNoteNotification(hexPub: String, title: String, text: String, authorBech32: String, avatar: Bitmap?, event: Event) {
+    private fun loadImage(hexPub: String, title: String, text: String, nip32Bech32: String, avatar: Bitmap?, event: Event) {
+        val (updatedText, imageUrl) = extractAndRemoveImageUrl(text)
+        if (imageUrl != null) {
+            Picasso.get()
+                .load(imageUrl)
+                .into(object : Target {
+                    override fun onBitmapLoaded(bitmap: Bitmap, from: Picasso.LoadedFrom) {
+                        displayNoteNotification(hexPub, title, updatedText, nip32Bech32, avatar, bitmap, event)
+                    }
+
+                    override fun onBitmapFailed(e: Exception, errorDrawable: Drawable?) {
+                        displayNoteNotification(hexPub, title, updatedText, nip32Bech32, avatar, null, event)
+                    }
+
+                    override fun onPrepareLoad(placeHolderDrawable: Drawable?) {
+                    }
+                })
+        } else {
+            displayNoteNotification(hexPub, title, updatedText, nip32Bech32, avatar, null, event)
+        }
+    }
+
+    private fun displayNoteNotification(hexPub: String, title: String, text: String, authorBech32: String, avatar: Bitmap?, thumbnail: Bitmap?, event: Event) {
         val notificationManager =
             getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val intentAction1 = Intent(this, NotificationReceiver::class.java).apply {
@@ -501,6 +524,14 @@ class NotificationsService : Service() {
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .addAction(0, getString(R.string.mute_thread), pendingIntentMute)
                 .setAutoCancel(true)
+
+        if (thumbnail != null) {
+            builder.setStyle(
+                NotificationCompat
+                    .BigPictureStyle()
+                    .bigPicture(thumbnail),
+            )
+        }
 
         var deepLinkIntent = Intent(Intent.ACTION_VIEW).apply {
             data = Uri.parse("nostr:$authorBech32")
@@ -550,6 +581,20 @@ class NotificationsService : Service() {
             }
         } else {
             onFinished(text)
+        }
+    }
+
+    private fun extractAndRemoveImageUrl(input: String): Pair<String, String?> {
+        // Regular expression to match image URLs
+        val imageUrlRegex = "(https?://.+\\.(jpeg|jpg|png|bmp|webp))".toRegex(RegexOption.IGNORE_CASE)
+        val matchResult = imageUrlRegex.find(input)
+
+        return if (matchResult != null) {
+            val imageUrl = matchResult.value
+            val modifiedString = input.replace(imageUrl, "").trim()
+            Pair(modifiedString, imageUrl)
+        } else {
+            Pair(input, null)
         }
     }
 }
