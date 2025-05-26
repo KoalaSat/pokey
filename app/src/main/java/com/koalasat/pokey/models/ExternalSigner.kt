@@ -49,9 +49,9 @@ object ExternalSigner {
             UUID.randomUUID().toString(),
         ) { result ->
             val split = result.split("-")
-            val pubkey = split.first()
-            if (split.first().isNotEmpty()) {
-                val hexPub = NostrClient.parseNpub(pubkey.toString()).toString()
+            val pubkey = split.first().toString()
+            if (pubkey.isNotEmpty()) {
+                val hexPub = NostrClient.parseNpub(pubkey).toString()
                 startLauncher(hexPub)
                 onReady(hexPub)
             }

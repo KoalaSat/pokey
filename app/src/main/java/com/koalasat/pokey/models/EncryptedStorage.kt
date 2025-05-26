@@ -10,8 +10,8 @@ import androidx.security.crypto.MasterKey
 object PrefKeys {
     const val NOSTR_BROADCAST = "broadcast"
     const val NOSTR_MAX_PUBKEYS = "maxPubKeys"
-    const val EXTERNAL_SIGNER = "external_signer"
     const val INBOX_PUBKEY = "inbox_pubkey"
+    const val INBOX_SUBSCRIPTION = "inbox_subscription"
 }
 
 object DefaultKeys {
@@ -23,6 +23,9 @@ object EncryptedStorage {
     private const val PREFERENCES_NAME = "secret_keeper"
 
     private lateinit var sharedPreferences: SharedPreferences
+
+    private val _inboxSubscription = MutableLiveData<String>()
+    val inboxSubscription: LiveData<String> get() = _inboxSubscription
 
     private val _inboxPubKey = MutableLiveData<String>()
     val inboxPubKey: LiveData<String> get() = _inboxPubKey
@@ -50,6 +53,7 @@ object EncryptedStorage {
         _broadcast.postValue(sharedPreferences.getBoolean(PrefKeys.NOSTR_BROADCAST, DefaultKeys.BROADCAST))
         _maxPubKeys.postValue(sharedPreferences.getInt(PrefKeys.NOSTR_MAX_PUBKEYS, DefaultKeys.MAX_PUBKEYS))
         _inboxPubKey.postValue(sharedPreferences.getString(PrefKeys.INBOX_PUBKEY, ""))
+        _inboxSubscription.postValue(sharedPreferences.getString(PrefKeys.INBOX_SUBSCRIPTION, ""))
     }
 
     fun updateBroadcast(newValue: Boolean) {
@@ -65,5 +69,10 @@ object EncryptedStorage {
     fun updateInboxPubKey(pubKey: String) {
         sharedPreferences.edit().putString(PrefKeys.INBOX_PUBKEY, pubKey).apply()
         _inboxPubKey.postValue(pubKey)
+    }
+
+    fun updateInboxSubscription(value: String) {
+        sharedPreferences.edit().putString(PrefKeys.INBOX_SUBSCRIPTION, value).apply()
+        _inboxSubscription.postValue(value)
     }
 }
