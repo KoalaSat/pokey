@@ -118,7 +118,11 @@ class HomeFragment : Fragment() {
         homeViewModel.subscription.observeForever { value ->
             if (_binding != null) {
                 if (value.isNotEmpty()) {
-                    val text = value?.substring(0, 10) + "..."
+                    val text = if (value.length > 10) {
+                        value?.substring(0, 10) + "..."
+                    } else {
+                        value
+                    }
                     binding.addSubscription.text = text
                 } else {
                     binding.addSubscription.visibility = View.VISIBLE
