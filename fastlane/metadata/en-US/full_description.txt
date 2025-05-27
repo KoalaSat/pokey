@@ -1,6 +1,8 @@
 <p> Nostr "Pull Notifications" on Android </p>
-<p><br><b>Features:</b></p><ul>
+<p><br><b>Features:</b></p>
+<ul>
 <li>Receive nostr notifications directly on your phone with no 3rd parties.</li>
 <li>Add multiple profiles</li>
 <li>Subscribe to publications</li>
 <li>Manage your inbox relays</li>
+</ul>
