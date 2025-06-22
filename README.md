@@ -12,7 +12,7 @@
     <a href="https://github.com/ImranR98/Obtainium" target="_blank">
         <img src="./docs/obtainium.png" alt="Get it on Obtaininum" height="70" />
     </a>
-    <a src="https://github.com/zapstore/zapstore/releases" target="_blank">
+    <a href="https://github.com/zapstore/zapstore/releases" target="_blank">
         <img src="./docs/zapstore.svg" alt="Get it on Zap.Store" height="70" />
     </a>
     <a href="https://github.com/KoalaSat/pokey/releases" target="_blank">
