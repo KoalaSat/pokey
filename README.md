@@ -9,6 +9,9 @@
     <img src="./app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="Description of Image" />
 </div>
 <div align="center">
+    <a href="https://apt.izzysoft.de/fdroid/index/apk/com.koalasat.pokey" target="_blank">
+        <img src="./docs/IzzyOnDroid.png" alt="Get it on IzzyOnDroid.png" height="70" />
+    </a>
     <a href="https://github.com/ImranR98/Obtainium" target="_blank">
         <img src="./docs/obtainium.png" alt="Get it on Obtaininum" height="70" />
     </a>
