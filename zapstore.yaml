@@ -2,7 +2,7 @@ identifier: com.koalasat.pokey
 name: Pokey
 summary: Nostr pull notifications on Android
 description: Receive live notifications for your nostr events and allow other apps to receive and interact with them.
-release_repository: https://github.com/koalasat/pokey
+repository: https://github.com/koalasat/pokey
 images:
   - fastlane/metadata/en-US/images/phoneScreenshots/01.png
   - fastlane/metadata/en-US/images/phoneScreenshots/02.png
