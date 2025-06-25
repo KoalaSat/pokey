@@ -40,8 +40,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.cancelAll()
+        clearAllNotifications()
 
         val navView: BottomNavigationView = binding.navView
 
@@ -82,6 +81,11 @@ class MainActivity : AppCompatActivity() {
                 requestCodePostNotifications,
             )
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        clearAllNotifications()
     }
 
     override fun onRequestPermissionsResult(
@@ -143,5 +147,10 @@ class MainActivity : AppCompatActivity() {
                 ExternalSigner.startLauncher(user.hexPub)
             }
         }
+    }
+
+    private fun clearAllNotifications() {
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancelAll()
     }
 }
