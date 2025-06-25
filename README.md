@@ -39,7 +39,8 @@ What is Nostr: https://www.nostr.how
 - [x] Multi-account
 - [x] InBox Relays management
 - [x] Granulated notification settings
-- [x] Mute button and mute lists
+- [ ] Mute buttons
+- [x] Mute lists
 - [x] ~~Last 20~~ notifications view
 - [ ] Custom emojis
 - [ ] Search term notification
