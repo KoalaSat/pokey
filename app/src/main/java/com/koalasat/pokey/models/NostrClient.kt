@@ -449,15 +449,16 @@ object NostrClient {
         }
     }
 
-    fun manageMuteList(context: Context, event: MuteListEvent, includePrivate: Boolean) {
+    fun manageMuteList(context: Context, event: MuteListEvent, mainPubKey: String) {
         CoroutineScope(Dispatchers.IO).launch {
             val db = AppDatabase.getDatabase(context, "common")
-            db.applicationDao().deleteMuteList(event.kind, event.pubKey)
+            db.applicationDao().deleteMuteList(event.kind, mainPubKey)
 
-            if (includePrivate && event.content != "") {
+            Log.d("Pokey", "Private mute event.content : ${event.content}")
+            if (event.content != "") {
                 val intent = context.packageManager.getLaunchIntentForPackage(ExternalSigner.EXTERNAL_SIGNER)
                 if (intent != null) {
-                    ExternalSigner.decrypt(event.content, event.pubKey) {
+                    ExternalSigner.decrypt(event.content, mainPubKey) {
                         try {
                             val privateTags = JSONArray(it)
                             Log.d("Pokey", "Private mute list : ${privateTags.length()}")
@@ -487,18 +488,12 @@ object NostrClient {
                         Toast.makeText(context, context.getString(R.string.external_signer_not_found), Toast.LENGTH_LONG).show()
                     }
                 }
-            } else {
-                val handler = Handler(Looper.getMainLooper())
-                handler.post {
-                    Toast.makeText(context, context.getString(R.string.not_private_elements), Toast.LENGTH_LONG).show()
-                }
             }
+
             Log.d("Pokey", "Public mute list : ${event.tags.size}")
             event.tags.forEach {
-                if (it.size > 1) {
-                    val muteEntity = MuteEntity(id = 0, kind = event.kind, tagType = it[0], entityId = it[1], private = 0, hexPub = event.pubKey)
-                    db.applicationDao().insertMute(muteEntity)
-                }
+                val muteEntity = MuteEntity(id = 0, kind = event.kind, tagType = it[0], entityId = it[1], private = 0, hexPub = event.pubKey)
+                db.applicationDao().insertMute(muteEntity)
             }
         }
     }
@@ -516,7 +511,7 @@ object NostrClient {
                 ),
             ),
             onResponse = { event ->
-                manageMuteList(context, event as MuteListEvent, true)
+                manageMuteList(context, event as MuteListEvent, hexPubKey)
             },
         )
     }

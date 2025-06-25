@@ -108,21 +108,20 @@ class NotificationsService : Service() {
             ) {
                 if (processedEvents.putIfAbsent(event.id, true) == null) {
                     Log.d("Pokey", "Relay Event: ${relay.url} - $subscriptionId - ${event.toJson()}")
+                    val anyUserNote = event.pubKey in hexPubKeysList
+                    val userMention: String? = event.taggedUsers().find { it in hexPubKeysList }
+                    val anySubscription = NostrClient.noteIsSubscription(event)
 
                     if (intArrayOf(10002, 10050).contains(event.kind)) {
                         NostrClient.manageInboxRelays(this@NotificationsService, event)
                         return
                     }
-                    if (intArrayOf(10000).contains(event.kind)) {
-                        NostrClient.manageMuteList(this@NotificationsService, event as MuteListEvent, false)
+                    if (userMention != null && intArrayOf(10000).contains(event.kind)) {
+                        NostrClient.manageMuteList(this@NotificationsService, event as MuteListEvent, userMention)
                         return
                     }
 
-                    val anyUserMention = event.taggedUsers().any { it in hexPubKeysList }
-                    val anyUserNote = event.pubKey in hexPubKeysList
-                    val anySubscription = NostrClient.noteIsSubscription(event)
-
-                    if ((!anyUserMention && !anySubscription) || anyUserNote) return
+                    if ((userMention == null && !anySubscription) || anyUserNote) return
 
                     val taggedUsers = event.taggedUsers().size
                     val maxPubKeys: Int? = EncryptedStorage.maxPubKeys.value
@@ -346,8 +345,8 @@ class NotificationsService : Service() {
             )
             notificationEntity.id = db.applicationDao().insertNotification(notificationEntity)!!
 
-            val mutedEvent = db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString(), event.pubKey) == 1
-            val mutedUser = db.applicationDao().existsMuteEntity(event.pubKey, event.pubKey) == 1
+            val mutedEvent = db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString()) == 1
+            val mutedUser = db.applicationDao().existsMuteEntity(event.pubKey) == 1
             if (mutedEvent || mutedUser) return@launch
 
             if (!event.hasVerifiedSignature()) return@launch
