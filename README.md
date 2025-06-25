@@ -43,7 +43,7 @@ What is Nostr: https://www.nostr.how
 - [x] Mute lists
 - [x] ~~Last 20~~ notifications view
 - [ ] Custom emojis
-- [ ] Search term notification
+- [x] Search term notification
 - [x] Display more info in sticky notification
 
 # Receiving user's inbox events on your app
