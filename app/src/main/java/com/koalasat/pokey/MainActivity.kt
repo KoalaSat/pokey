@@ -137,5 +137,11 @@ class MainActivity : AppCompatActivity() {
     fun init() {
         EncryptedStorage.init(this)
         ExternalSigner.init(this)
+        CoroutineScope(Dispatchers.IO).launch {
+            val dao = AppDatabase.getDatabase(applicationContext, "common").applicationDao()
+            for (user in dao.getSignerUsers()) {
+                ExternalSigner.startLauncher(user.hexPub)
+            }
+        }
     }
 }

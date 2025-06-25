@@ -458,7 +458,7 @@ object NostrClient {
             if (event.content != "") {
                 val intent = context.packageManager.getLaunchIntentForPackage(ExternalSigner.EXTERNAL_SIGNER)
                 if (intent != null) {
-                    ExternalSigner.decrypt(event.content, mainPubKey) {
+                    ExternalSigner.decrypt(event) {
                         try {
                             val privateTags = JSONArray(it)
                             Log.d("Pokey", "Private mute list : ${privateTags.length()}")

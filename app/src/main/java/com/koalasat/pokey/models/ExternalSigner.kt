@@ -9,7 +9,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.R
-import com.vitorpamplona.quartz.encoders.HexKey
 import com.vitorpamplona.quartz.encoders.toHexKey
 import com.vitorpamplona.quartz.events.Event
 import com.vitorpamplona.quartz.signers.ExternalSignerLauncher
@@ -25,6 +24,7 @@ object ExternalSigner {
     const val EXTERNAL_SIGNER = "com.greenart7c3.nostrsigner"
     private lateinit var nostrSignerLauncher: ActivityResultLauncher<Intent>
     private var externalSignerLaunchers = ConcurrentHashMap<String, ExternalSignerLauncher>()
+    private var intents = ConcurrentHashMap<String, String>()
 
     fun init(activity: AppCompatActivity) {
         nostrSignerLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -33,7 +33,9 @@ object ExternalSigner {
                 Toast.makeText(activity, activity.getString(R.string.amber_not_found), Toast.LENGTH_SHORT).show()
             } else {
                 result.data?.let {
-                    var externalSignerLauncher = externalSignerLaunchers[""]
+                    val id = it.getStringExtra("id")
+                    val pubKey = intents.remove(id) ?: ""
+                    var externalSignerLauncher = externalSignerLaunchers[pubKey]
                     externalSignerLauncher?.newResult(it)
                 }
             }
@@ -60,7 +62,7 @@ object ExternalSigner {
     }
 
     fun auth(hexKey: String, relayUrl: String, challenge: String, onReady: (Event) -> Unit) {
-        var externalSignerLauncher = externalSignerLaunchers[""]
+        var externalSignerLauncher = externalSignerLaunchers[hexKey]
 
         val createdAt = TimeUtils.now()
         val kind = 22242
@@ -99,25 +101,27 @@ object ExternalSigner {
     }
 
     fun sign(event: Event, onReady: (String) -> Unit) {
-        var externalSignerLauncher = externalSignerLaunchers[""]
+        var externalSignerLauncher = externalSignerLaunchers[event.pubKey]
         externalSignerLauncher?.openSigner(
             event,
             onReady,
         )
     }
 
-    fun decrypt(encryptedContent: String, pubKey: HexKey, onReady: (String) -> Unit) {
-        var externalSignerLauncher = externalSignerLaunchers[""]
+    fun decrypt(event: Event, onReady: (String) -> Unit) {
+        var externalSignerLauncher = externalSignerLaunchers[event.pubKey]
+        val id = UUID.randomUUID().toString()
+        intents.put(id, event.pubKey)
         externalSignerLauncher?.openSignerApp(
-            encryptedContent,
+            event.content,
             SignerType.NIP04_DECRYPT,
-            pubKey,
-            UUID.randomUUID().toString(),
+            event.pubKey,
+            id,
             onReady,
         )
     }
 
-    private fun startLauncher(pubKey: String) {
+    fun startLauncher(pubKey: String) {
         val externalSignerLauncher = ExternalSignerLauncher(pubKey, signerPackageName = EXTERNAL_SIGNER)
         externalSignerLauncher.registerLauncher(
             launcher = {
