@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.R
+import com.vitorpamplona.quartz.encoders.HexKey
 import com.vitorpamplona.quartz.encoders.toHexKey
 import com.vitorpamplona.quartz.events.Event
 import com.vitorpamplona.quartz.signers.ExternalSignerLauncher
@@ -59,7 +60,7 @@ object ExternalSigner {
     }
 
     fun auth(hexKey: String, relayUrl: String, challenge: String, onReady: (Event) -> Unit) {
-        var externalSignerLauncher = externalSignerLaunchers[hexKey]
+        var externalSignerLauncher = externalSignerLaunchers[""]
 
         val createdAt = TimeUtils.now()
         val kind = 22242
@@ -98,9 +99,20 @@ object ExternalSigner {
     }
 
     fun sign(event: Event, onReady: (String) -> Unit) {
-        var externalSignerLauncher = externalSignerLaunchers[event.pubKey]
+        var externalSignerLauncher = externalSignerLaunchers[""]
         externalSignerLauncher?.openSigner(
             event,
+            onReady,
+        )
+    }
+
+    fun decrypt(encryptedContent: String, pubKey: HexKey, onReady: (String) -> Unit) {
+        var externalSignerLauncher = externalSignerLaunchers[""]
+        externalSignerLauncher?.openSignerApp(
+            encryptedContent,
+            SignerType.NIP04_DECRYPT,
+            pubKey,
+            UUID.randomUUID().toString(),
             onReady,
         )
     }

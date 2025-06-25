@@ -42,6 +42,7 @@ import com.vitorpamplona.quartz.encoders.toNote
 import com.vitorpamplona.quartz.encoders.toNpub
 import com.vitorpamplona.quartz.events.Event
 import com.vitorpamplona.quartz.events.EventInterface
+import com.vitorpamplona.quartz.events.MuteListEvent
 import com.vitorpamplona.quartz.utils.TimeUtils
 import java.util.Timer
 import java.util.TimerTask
@@ -113,7 +114,7 @@ class NotificationsService : Service() {
                         return
                     }
                     if (intArrayOf(10000).contains(event.kind)) {
-                        NostrClient.manageMuteList(this@NotificationsService, event)
+                        NostrClient.manageMuteList(this@NotificationsService, event as MuteListEvent, false)
                         return
                     }
 
@@ -345,7 +346,10 @@ class NotificationsService : Service() {
             )
             notificationEntity.id = db.applicationDao().insertNotification(notificationEntity)!!
 
-            if (event.firstTaggedEvent()?.isNotEmpty() == true && db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString(), event.pubKey) == 1) return@launch
+            val mutedEvent = db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString(), event.pubKey) == 1
+            val mutedUser = db.applicationDao().existsMuteEntity(event.pubKey, event.pubKey) == 1
+            if (mutedEvent || mutedUser) return@launch
+
             if (!event.hasVerifiedSignature()) return@launch
 
             val user = db.applicationDao().getUser(notificationHexPub.toString())
@@ -508,13 +512,6 @@ class NotificationsService : Service() {
     private fun displayNoteNotification(hexPub: String, title: String, text: String, authorBech32: String, avatar: Bitmap?, thumbnail: Bitmap?, event: Event) {
         val notificationManager =
             getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val intentAction1 = Intent(this, NotificationReceiver::class.java).apply {
-            action = "MUTE"
-            putExtra("rootEventId", event.firstTaggedEvent())
-            putExtra("notificationId", event.id.hashCode())
-            putExtra("hexPub", hexPub)
-        }
-        val pendingIntentMute = PendingIntent.getBroadcast(this, event.id.hashCode(), intentAction1, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         var builder: NotificationCompat.Builder =
             NotificationCompat.Builder(
                 applicationContext,
@@ -525,7 +522,6 @@ class NotificationsService : Service() {
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setLargeIcon(avatar)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .addAction(0, getString(R.string.mute_thread), pendingIntentMute)
                 .setAutoCancel(true)
 
         if (thumbnail != null) {
