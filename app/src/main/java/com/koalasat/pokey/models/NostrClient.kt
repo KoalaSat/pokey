@@ -460,8 +460,9 @@ object NostrClient {
         CoroutineScope(Dispatchers.IO).launch {
             val db = AppDatabase.getDatabase(context, "common")
             db.applicationDao().deleteMuteList(event.kind, mainPubKey)
+            val user = db.applicationDao().getUser(mainPubKey)
 
-            if (event.content != "") {
+            if (user?.signer == 1 && event.content != "") {
                 if (Pokey.appHasFocus.value == true) {
                     val intent = context.packageManager.getLaunchIntentForPackage(ExternalSigner.EXTERNAL_SIGNER)
                     if (intent != null) {
