@@ -118,7 +118,7 @@ class MainActivity : AppCompatActivity() {
             R.id.refresh_private_mute -> {
                 CoroutineScope(Dispatchers.IO).launch {
                     val dao = AppDatabase.getDatabase(applicationContext, "common").applicationDao()
-                    for (user in dao.getUsers()) {
+                    for (user in dao.getSignerUsers()) {
                         NostrClient.fetchMuteList(applicationContext, user.hexPub)
                     }
                 }
