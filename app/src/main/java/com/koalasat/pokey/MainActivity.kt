@@ -69,6 +69,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        intent?.let {
+            val action = it.getStringExtra("EXTRA_NOTIFICATION_ACTION")
+            if (action == "NEW_MUTE_LIST") {
+                val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                notificationManager.cancel(11111)
+                updateMuteLists()
+            }
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(
                 this,
@@ -86,6 +95,12 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         clearAllNotifications()
+        Pokey.updateAppHasFocus(true)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Pokey.updateAppHasFocus(false)
     }
 
     override fun onRequestPermissionsResult(
@@ -152,5 +167,14 @@ class MainActivity : AppCompatActivity() {
     private fun clearAllNotifications() {
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancelAll()
+    }
+
+    private fun updateMuteLists() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val dao = AppDatabase.getDatabase(applicationContext, "common").applicationDao()
+            for (user in dao.getSignerUsers()) {
+                NostrClient.fetchMuteList(applicationContext, user.hexPub)
+            }
+        }
     }
 }

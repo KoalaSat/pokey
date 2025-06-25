@@ -76,4 +76,6 @@
     <string name="external_signer_not_found">External signer not found</string>
     <string name="invalid_private_mute">Invalid private mute list</string>
     <string name="not_private_elements">Your private mute list is empty</string>
+    <string name="new_mute_list_notification_title">New mute list version</string>
+    <string name="new_mute_list_notification_text">New version of your private mute list detected. Tap this notification to apply it.</string>
 </resources>

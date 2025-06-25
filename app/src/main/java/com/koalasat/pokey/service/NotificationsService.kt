@@ -108,20 +108,21 @@ class NotificationsService : Service() {
             ) {
                 if (processedEvents.putIfAbsent(event.id, true) == null) {
                     Log.d("Pokey", "Relay Event: ${relay.url} - $subscriptionId - ${event.toJson()}")
-                    val anyUserNote = event.pubKey in hexPubKeysList
+                    val userNotePubKey: String? = hexPubKeysList.find { it == event.pubKey }
                     val userMention: String? = event.taggedUsers().find { it in hexPubKeysList }
                     val anySubscription = NostrClient.noteIsSubscription(event)
 
-                    if (intArrayOf(10002, 10050).contains(event.kind)) {
-                        NostrClient.manageInboxRelays(this@NotificationsService, event)
-                        return
-                    }
-                    if (userMention != null && intArrayOf(10000).contains(event.kind)) {
-                        NostrClient.manageMuteList(this@NotificationsService, event as MuteListEvent, userMention)
-                        return
+                    if (userNotePubKey !== null) {
+                        if (intArrayOf(10002, 10050).contains(event.kind)) {
+                            NostrClient.manageInboxRelays(this@NotificationsService, event)
+                            return
+                        } else if (intArrayOf(10000).contains(event.kind)) {
+                            NostrClient.manageMuteList(this@NotificationsService, event as MuteListEvent, userNotePubKey)
+                            return
+                        }
                     }
 
-                    if ((userMention == null && !anySubscription) || anyUserNote) return
+                    if ((userMention == null && !anySubscription) || userNotePubKey !== null) return
 
                     val taggedUsers = event.taggedUsers().size
                     val maxPubKeys: Int? = EncryptedStorage.maxPubKeys.value

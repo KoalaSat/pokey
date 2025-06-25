@@ -59,6 +59,8 @@ class Pokey : Application() {
         val loadingPrivateRelays: LiveData<Boolean> get() = _loadingPrivateRelays
         private val _lastNotificationTime = MutableLiveData<Long>()
         val lastNotificationTime: LiveData<Long> get() = _lastNotificationTime
+        private val _appHasFocus = MutableLiveData<Boolean>()
+        val appHasFocus: LiveData<Boolean> get() = _appHasFocus
 
         @Volatile
         private var instance: Pokey? = null
@@ -82,6 +84,10 @@ class Pokey : Application() {
 
         fun updateNewPrivateRelay(time: Long) {
             _lastNotificationTime.postValue(time)
+        }
+
+        fun updateAppHasFocus(appHasFocus: Boolean) {
+            _appHasFocus.postValue(appHasFocus)
         }
 
         fun isForegroundServiceEnabled(context: Context): Boolean {
