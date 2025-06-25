@@ -57,8 +57,8 @@ interface ApplicationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertMute(muteEntity: MuteEntity): Long?
 
-    @Query("SELECT EXISTS (SELECT 1 FROM mute WHERE entityId = :entityId AND hexPub = :hexPub)")
-    fun existsMuteEntity(entityId: String, hexPub: String): Int
+    @Query("SELECT EXISTS (SELECT 1 FROM mute WHERE entityId = :entityId)")
+    fun existsMuteEntity(entityId: String): Int
 
     @Query("SELECT * FROM mute WHERE kind = :kind AND hexPub = :hexPub")
     fun getMuteList(kind: Int, hexPub: String): List<MuteEntity>

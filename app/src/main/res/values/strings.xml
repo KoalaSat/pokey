@@ -70,4 +70,10 @@
     <string name="delete_subscription">Delete</string>
     <string name="subscription_hint">Subscriptions are fetch from your inbox relays</string>
     <string name="new_post">New post</string>
+    <string name="mute_user">Mute user</string>
+    <string name="refresh_private_mute">Refresh mute lists</string>
+    <string name="private_mute_updated">Private mute list updated: %d elements</string>
+    <string name="external_signer_not_found">External signer not found</string>
+    <string name="invalid_private_mute">Invalid private mute list</string>
+    <string name="not_private_elements">Your private mute list is empty</string>
 </resources>

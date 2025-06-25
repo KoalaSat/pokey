@@ -42,6 +42,7 @@ import com.vitorpamplona.quartz.encoders.toNote
 import com.vitorpamplona.quartz.encoders.toNpub
 import com.vitorpamplona.quartz.events.Event
 import com.vitorpamplona.quartz.events.EventInterface
+import com.vitorpamplona.quartz.events.MuteListEvent
 import com.vitorpamplona.quartz.utils.TimeUtils
 import java.util.Timer
 import java.util.TimerTask
@@ -107,21 +108,20 @@ class NotificationsService : Service() {
             ) {
                 if (processedEvents.putIfAbsent(event.id, true) == null) {
                     Log.d("Pokey", "Relay Event: ${relay.url} - $subscriptionId - ${event.toJson()}")
+                    val anyUserNote = event.pubKey in hexPubKeysList
+                    val userMention: String? = event.taggedUsers().find { it in hexPubKeysList }
+                    val anySubscription = NostrClient.noteIsSubscription(event)
 
                     if (intArrayOf(10002, 10050).contains(event.kind)) {
                         NostrClient.manageInboxRelays(this@NotificationsService, event)
                         return
                     }
-                    if (intArrayOf(10000).contains(event.kind)) {
-                        NostrClient.manageMuteList(this@NotificationsService, event)
+                    if (userMention != null && intArrayOf(10000).contains(event.kind)) {
+                        NostrClient.manageMuteList(this@NotificationsService, event as MuteListEvent, userMention)
                         return
                     }
 
-                    val anyUserMention = event.taggedUsers().any { it in hexPubKeysList }
-                    val anyUserNote = event.pubKey in hexPubKeysList
-                    val anySubscription = NostrClient.noteIsSubscription(event)
-
-                    if ((!anyUserMention && !anySubscription) || anyUserNote) return
+                    if ((userMention == null && !anySubscription) || anyUserNote) return
 
                     val taggedUsers = event.taggedUsers().size
                     val maxPubKeys: Int? = EncryptedStorage.maxPubKeys.value
@@ -345,7 +345,10 @@ class NotificationsService : Service() {
             )
             notificationEntity.id = db.applicationDao().insertNotification(notificationEntity)!!
 
-            if (event.firstTaggedEvent()?.isNotEmpty() == true && db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString(), event.pubKey) == 1) return@launch
+            val mutedEvent = db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString()) == 1
+            val mutedUser = db.applicationDao().existsMuteEntity(event.pubKey) == 1
+            if (mutedEvent || mutedUser) return@launch
+
             if (!event.hasVerifiedSignature()) return@launch
 
             val user = db.applicationDao().getUser(notificationHexPub.toString())
@@ -508,13 +511,6 @@ class NotificationsService : Service() {
     private fun displayNoteNotification(hexPub: String, title: String, text: String, authorBech32: String, avatar: Bitmap?, thumbnail: Bitmap?, event: Event) {
         val notificationManager =
             getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val intentAction1 = Intent(this, NotificationReceiver::class.java).apply {
-            action = "MUTE"
-            putExtra("rootEventId", event.firstTaggedEvent())
-            putExtra("notificationId", event.id.hashCode())
-            putExtra("hexPub", hexPub)
-        }
-        val pendingIntentMute = PendingIntent.getBroadcast(this, event.id.hashCode(), intentAction1, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         var builder: NotificationCompat.Builder =
             NotificationCompat.Builder(
                 applicationContext,
@@ -525,7 +521,6 @@ class NotificationsService : Service() {
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setLargeIcon(avatar)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .addAction(0, getString(R.string.mute_thread), pendingIntentMute)
                 .setAutoCancel(true)
 
         if (thumbnail != null) {

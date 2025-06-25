@@ -1,6 +1,7 @@
 package com.koalasat.pokey
 
 import android.Manifest
+import android.app.NotificationManager
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -17,9 +18,14 @@ import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.databinding.ActivityMainBinding
 import com.koalasat.pokey.models.EncryptedStorage
 import com.koalasat.pokey.models.ExternalSigner
+import com.koalasat.pokey.models.NostrClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     private val requestCodePostNotifications: Int = 1
@@ -33,6 +39,9 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancelAll()
 
         val navView: BottomNavigationView = binding.navView
 
@@ -106,6 +115,15 @@ class MainActivity : AppCompatActivity() {
                 navController.navigate(R.id.navigation_configuration)
                 true
             }
+            R.id.refresh_private_mute -> {
+                CoroutineScope(Dispatchers.IO).launch {
+                    val dao = AppDatabase.getDatabase(applicationContext, "common").applicationDao()
+                    for (user in dao.getSignerUsers()) {
+                        NostrClient.fetchMuteList(applicationContext, user.hexPub)
+                    }
+                }
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -119,5 +137,11 @@ class MainActivity : AppCompatActivity() {
     fun init() {
         EncryptedStorage.init(this)
         ExternalSigner.init(this)
+        CoroutineScope(Dispatchers.IO).launch {
+            val dao = AppDatabase.getDatabase(applicationContext, "common").applicationDao()
+            for (user in dao.getSignerUsers()) {
+                ExternalSigner.startLauncher(user.hexPub)
+            }
+        }
     }
 }

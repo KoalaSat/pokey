@@ -24,6 +24,7 @@ object ExternalSigner {
     const val EXTERNAL_SIGNER = "com.greenart7c3.nostrsigner"
     private lateinit var nostrSignerLauncher: ActivityResultLauncher<Intent>
     private var externalSignerLaunchers = ConcurrentHashMap<String, ExternalSignerLauncher>()
+    private var intents = ConcurrentHashMap<String, String>()
 
     fun init(activity: AppCompatActivity) {
         nostrSignerLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -32,7 +33,9 @@ object ExternalSigner {
                 Toast.makeText(activity, activity.getString(R.string.amber_not_found), Toast.LENGTH_SHORT).show()
             } else {
                 result.data?.let {
-                    var externalSignerLauncher = externalSignerLaunchers[""]
+                    val id = it.getStringExtra("id")
+                    val pubKey = intents.remove(id) ?: ""
+                    var externalSignerLauncher = externalSignerLaunchers[pubKey]
                     externalSignerLauncher?.newResult(it)
                 }
             }
@@ -105,7 +108,20 @@ object ExternalSigner {
         )
     }
 
-    private fun startLauncher(pubKey: String) {
+    fun decrypt(event: Event, onReady: (String) -> Unit) {
+        var externalSignerLauncher = externalSignerLaunchers[event.pubKey]
+        val id = UUID.randomUUID().toString()
+        intents.put(id, event.pubKey)
+        externalSignerLauncher?.openSignerApp(
+            event.content,
+            SignerType.NIP04_DECRYPT,
+            event.pubKey,
+            id,
+            onReady,
+        )
+    }
+
+    fun startLauncher(pubKey: String) {
         val externalSignerLauncher = ExternalSignerLauncher(pubKey, signerPackageName = EXTERNAL_SIGNER)
         externalSignerLauncher.registerLauncher(
             launcher = {
