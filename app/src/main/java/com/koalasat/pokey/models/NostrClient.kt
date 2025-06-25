@@ -1,10 +1,17 @@
 package com.koalasat.pokey.models
 
+import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import androidx.core.app.NotificationCompat
+import com.koalasat.pokey.MainActivity
 import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.R
 import com.koalasat.pokey.database.AppDatabase
@@ -454,39 +461,42 @@ object NostrClient {
             val db = AppDatabase.getDatabase(context, "common")
             db.applicationDao().deleteMuteList(event.kind, mainPubKey)
 
-            Log.d("Pokey", "Private mute event.content : ${event.content}")
             if (event.content != "") {
-                val intent = context.packageManager.getLaunchIntentForPackage(ExternalSigner.EXTERNAL_SIGNER)
-                if (intent != null) {
-                    ExternalSigner.decrypt(event) {
-                        try {
-                            val privateTags = JSONArray(it)
-                            Log.d("Pokey", "Private mute list : ${privateTags.length()}")
-                            CoroutineScope(Dispatchers.IO).launch {
-                                for (i in 0 until privateTags.length()) {
-                                    val tag = privateTags.getJSONArray(i)
-                                    if (tag.length() > 1) {
-                                        val muteEntity = MuteEntity(id = 0, kind = event.kind, tagType = tag.getString(0), entityId = tag.getString(1), private = 1, hexPub = event.pubKey)
-                                        db.applicationDao().insertMute(muteEntity)
+                if (Pokey.appHasFocus.value == true) {
+                    val intent = context.packageManager.getLaunchIntentForPackage(ExternalSigner.EXTERNAL_SIGNER)
+                    if (intent != null) {
+                        ExternalSigner.decrypt(event) {
+                            try {
+                                val privateTags = JSONArray(it)
+                                Log.d("Pokey", "Private mute list : ${privateTags.length()}")
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    for (i in 0 until privateTags.length()) {
+                                        val tag = privateTags.getJSONArray(i)
+                                        if (tag.length() > 1) {
+                                            val muteEntity = MuteEntity(id = 0, kind = event.kind, tagType = tag.getString(0), entityId = tag.getString(1), private = 1, hexPub = event.pubKey)
+                                            db.applicationDao().insertMute(muteEntity)
+                                        }
+                                    }
+                                    val handler = Handler(Looper.getMainLooper())
+                                    handler.post {
+                                        Toast.makeText(context, context.getString(R.string.private_mute_updated, privateTags.length()), Toast.LENGTH_LONG).show()
                                     }
                                 }
+                            } catch (e: JSONException) {
                                 val handler = Handler(Looper.getMainLooper())
                                 handler.post {
-                                    Toast.makeText(context, context.getString(R.string.private_mute_updated, privateTags.length()), Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, context.getString(R.string.invalid_private_mute), Toast.LENGTH_LONG).show()
                                 }
                             }
-                        } catch (e: JSONException) {
-                            val handler = Handler(Looper.getMainLooper())
-                            handler.post {
-                                Toast.makeText(context, context.getString(R.string.invalid_private_mute), Toast.LENGTH_LONG).show()
-                            }
+                        }
+                    } else {
+                        val handler = Handler(Looper.getMainLooper())
+                        handler.post {
+                            Toast.makeText(context, context.getString(R.string.external_signer_not_found), Toast.LENGTH_LONG).show()
                         }
                     }
                 } else {
-                    val handler = Handler(Looper.getMainLooper())
-                    handler.post {
-                        Toast.makeText(context, context.getString(R.string.external_signer_not_found), Toast.LENGTH_LONG).show()
-                    }
+                    notifyNewPrivateList(context)
                 }
             }
 
@@ -535,5 +545,39 @@ object NostrClient {
         } else {
             return false
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun notifyNewPrivateList(context: Context) {
+        val channelId = "pokey_alerts_channel"
+        val channelName = "Alerts"
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
+
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val existingChannel = notificationManager.getNotificationChannel(channelId)
+        if (existingChannel == null) {
+            val channel = NotificationChannel(channelId, channelName, importance)
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("EXTRA_NOTIFICATION_ACTION", "NEW_MUTE_LIST")
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val builder = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(context.getString(R.string.new_mute_list_notification_title))
+            .setContentText(context.getString(R.string.new_mute_list_notification_text))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+
+        notificationManager.notify(11111, builder.build())
     }
 }
