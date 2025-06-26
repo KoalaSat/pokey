@@ -2,6 +2,7 @@
 [![GitHub downloads](https://img.shields.io/github/downloads/KoalaSat/pokey/total?label=Downloads&labelColor=27303D&color=0D1117&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/KoalaSat/pokey/releases)
 [![release](https://img.shields.io/github/v/release/KoalaSat/pokey)](https://github.com/KoalaSat/pokey)
 [![MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/KoalaSat/pokey/blob/main/LICENSE)
+[![Nostr](https://img.shields.io/badge/chat-nostr-brightgreen)](https://chachi.chat/groups.0xchat.com/7SbVsYrEQMtZAMIn)
 
  Display live notifications for your nostr events and allow other apps to receive and interact with them.
 
@@ -22,8 +23,6 @@
         <img src="https://github.com/machiav3lli/oandbackupx/raw/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="70">
     </a>
 </div>
-
-- Discussion: https://chachi.chat/groups.0xchat.com/7SbVsYrEQMtZAMIn
 
 # Getting Started
 
