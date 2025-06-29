@@ -20,8 +20,8 @@ data class NotificationEntity(
     val time: Long,
     val accountKexPub: String = "",
     var nip32: String = "",
+    val rootId: String = "",
     var title: String? = "",
     var text: String? = "",
     var avatarUrl: String? = "",
-    val rootId: String? = "",
 )
