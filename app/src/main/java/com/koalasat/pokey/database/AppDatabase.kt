@@ -100,6 +100,16 @@ val MIGRATION_10_11 =
             db.execSQL("DROP TABLE mute")
             db.execSQL("ALTER TABLE mute_new RENAME TO mute")
             db.execSQL("ALTER TABLE notification ADD COLUMN rootId TEXT NOT NULL DEFAULT '';")
+            db.execSQL(
+                """
+                CREATE INDEX mute_by_entityId ON mute(entityId)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE UNIQUE INDEX mute_unique_hexPub_entityId_createdAt ON mute(hexPub, entityId, createdAt)
+                """.trimIndent(),
+            )
         }
     }
 
