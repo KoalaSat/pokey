@@ -336,22 +336,23 @@ class NotificationsService : Service() {
             val existsEvent = db.applicationDao().existsNotification(event.id)
             if (existsEvent > 0) return@launch
 
-            val notificationHexPub = event.taggedUsers().find { it in hexPubKeysList }
+            val rootEventId = event.firstTaggedEvent().toString()
+            val mutedEvent = db.applicationDao().existsMuteEntity(rootEventId) == 1
+            val mutedUser = db.applicationDao().existsMuteEntity(event.pubKey) == 1
+            if (mutedEvent || mutedUser) return@launch
 
             var notificationEntity = NotificationEntity(
                 id = 0,
                 eventId = event.id,
                 accountKexPub = event.pubKey,
                 time = event.createdAt,
+                rootId = rootEventId,
             )
             notificationEntity.id = db.applicationDao().insertNotification(notificationEntity)!!
 
-            val mutedEvent = db.applicationDao().existsMuteEntity(event.firstTaggedEvent().toString()) == 1
-            val mutedUser = db.applicationDao().existsMuteEntity(event.pubKey) == 1
-            if (mutedEvent || mutedUser) return@launch
-
             if (!event.hasVerifiedSignature()) return@launch
 
+            val notificationHexPub = event.taggedUsers().find { it in hexPubKeysList }
             val user = db.applicationDao().getUser(notificationHexPub.toString())
             val hexPubKey = event.pubKey
 

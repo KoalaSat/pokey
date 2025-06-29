@@ -16,6 +16,7 @@ import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.R
 import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.database.MuteEntity
+import com.koalasat.pokey.database.NotificationEntity
 import com.koalasat.pokey.database.RelayEntity
 import com.vitorpamplona.ammolite.relays.COMMON_FEED_TYPES
 import com.vitorpamplona.ammolite.relays.Client
@@ -527,14 +528,15 @@ object NostrClient {
         }
     }
 
-    fun publishMuteThread(context: Context, eventId: String) {
+    fun publishMuteThread(context: Context, event: NotificationEntity) {
         CoroutineScope(Dispatchers.IO).launch {
             val db = AppDatabase.getDatabase(context, "common")
             val signerUsers = db.applicationDao().getSignerUsers()
             val signerHexPubKey = signerUsers.first().hexPub
 
             val lastCreatedAt = db.applicationDao().getMostRecentMuteListDate(signerHexPubKey) ?: 0
-            val muteEntity = MuteEntity(id = 0, kind = 10000, tagType = "e", entityId = eventId, private = 0, hexPub = signerHexPubKey, createdAt = lastCreatedAt)
+            val rootId = if (event.rootId == "") event.eventId else event.rootId ?: ""
+            val muteEntity = MuteEntity(id = 0, kind = 10000, tagType = "e", entityId = rootId, private = 0, hexPub = signerHexPubKey, createdAt = lastCreatedAt)
             db.applicationDao().insertMute(muteEntity)
             publishPublicMute(context)
         }

@@ -205,7 +205,7 @@ class MainActivity : AppCompatActivity() {
                     CoroutineScope(Dispatchers.IO).launch {
                         val db = AppDatabase.getDatabase(applicationContext, "common")
                         val notification = db.applicationDao().getNotification(hexPub, eventId)
-                        NostrClient.publishMuteThread(applicationContext, notification.eventId)
+                        NostrClient.publishMuteThread(applicationContext, notification)
                         dialog.dismiss()
                     }
                 }

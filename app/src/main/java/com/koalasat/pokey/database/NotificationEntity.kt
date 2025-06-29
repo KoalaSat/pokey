@@ -23,4 +23,5 @@ data class NotificationEntity(
     var title: String? = "",
     var text: String? = "",
     var avatarUrl: String? = "",
+    val rootId: String? = "",
 )

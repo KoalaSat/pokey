@@ -99,6 +99,7 @@ val MIGRATION_10_11 =
             )
             db.execSQL("DROP TABLE mute")
             db.execSQL("ALTER TABLE mute_new RENAME TO mute")
+            db.execSQL("ALTER TABLE notification ADD COLUMN rootId TEXT NOT NULL DEFAULT '';")
         }
     }
 
