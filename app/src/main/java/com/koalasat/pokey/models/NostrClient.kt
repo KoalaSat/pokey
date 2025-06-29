@@ -16,6 +16,7 @@ import com.koalasat.pokey.Pokey
 import com.koalasat.pokey.R
 import com.koalasat.pokey.database.AppDatabase
 import com.koalasat.pokey.database.MuteEntity
+import com.koalasat.pokey.database.NotificationEntity
 import com.koalasat.pokey.database.RelayEntity
 import com.vitorpamplona.ammolite.relays.COMMON_FEED_TYPES
 import com.vitorpamplona.ammolite.relays.Client
@@ -456,55 +457,140 @@ object NostrClient {
         }
     }
 
-    fun manageMuteList(context: Context, event: MuteListEvent, mainPubKey: String) {
+    fun manageMuteList(context: Context, event: MuteListEvent) {
         CoroutineScope(Dispatchers.IO).launch {
             val db = AppDatabase.getDatabase(context, "common")
-            db.applicationDao().deleteMuteList(event.kind, mainPubKey)
-            val user = db.applicationDao().getUser(mainPubKey)
+            val lastCreatedAt = db.applicationDao().getMostRecentMuteListDate(event.pubKey) ?: 0
 
-            if (user?.signer == 1 && event.content != "") {
-                if (Pokey.appHasFocus.value == true) {
-                    val intent = context.packageManager.getLaunchIntentForPackage(ExternalSigner.EXTERNAL_SIGNER)
-                    if (intent != null) {
-                        ExternalSigner.decrypt(event) {
-                            try {
-                                val privateTags = JSONArray(it)
-                                Log.d("Pokey", "Private mute list : ${privateTags.length()}")
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    for (i in 0 until privateTags.length()) {
-                                        val tag = privateTags.getJSONArray(i)
-                                        if (tag.length() > 1) {
-                                            val muteEntity = MuteEntity(id = 0, kind = event.kind, tagType = tag.getString(0), entityId = tag.getString(1), private = 1, hexPub = event.pubKey)
-                                            db.applicationDao().insertMute(muteEntity)
+            if (event.createdAt > lastCreatedAt) {
+                db.applicationDao().deleteMuteList(event.kind, event.pubKey)
+                val user = db.applicationDao().getUser(event.pubKey)
+                if (user?.signer == 1 && event.content != "") {
+                    if (Pokey.appHasFocus.value == true) {
+                        val intent = context.packageManager.getLaunchIntentForPackage(ExternalSigner.EXTERNAL_SIGNER)
+                        if (intent != null) {
+                            ExternalSigner.decrypt(event) {
+                                try {
+                                    val privateTags = JSONArray(it)
+                                    Log.d("Pokey", "Private mute list : ${privateTags.length()}")
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        for (i in 0 until privateTags.length()) {
+                                            val tag = privateTags.getJSONArray(i)
+                                            if (tag.length() > 1) {
+                                                val muteEntity = MuteEntity(id = 0, kind = event.kind, tagType = tag.getString(0), entityId = tag.getString(1), private = 1, hexPub = event.pubKey, createdAt = event.createdAt)
+                                                db.applicationDao().insertMute(muteEntity)
+                                            }
+                                        }
+                                        val handler = Handler(Looper.getMainLooper())
+                                        handler.post {
+                                            Toast.makeText(context, context.getString(R.string.private_mute_updated, privateTags.length()), Toast.LENGTH_LONG).show()
                                         }
                                     }
+                                } catch (e: JSONException) {
                                     val handler = Handler(Looper.getMainLooper())
                                     handler.post {
-                                        Toast.makeText(context, context.getString(R.string.private_mute_updated, privateTags.length()), Toast.LENGTH_LONG).show()
+                                        Toast.makeText(context, context.getString(R.string.invalid_private_mute), Toast.LENGTH_LONG).show()
                                     }
                                 }
-                            } catch (e: JSONException) {
-                                val handler = Handler(Looper.getMainLooper())
-                                handler.post {
-                                    Toast.makeText(context, context.getString(R.string.invalid_private_mute), Toast.LENGTH_LONG).show()
-                                }
+                            }
+                        } else {
+                            val handler = Handler(Looper.getMainLooper())
+                            handler.post {
+                                Toast.makeText(context, context.getString(R.string.external_signer_not_found), Toast.LENGTH_LONG).show()
                             }
                         }
-                    } else {
-                        val handler = Handler(Looper.getMainLooper())
-                        handler.post {
-                            Toast.makeText(context, context.getString(R.string.external_signer_not_found), Toast.LENGTH_LONG).show()
+
+                        Log.d("Pokey", "Public mute list : ${event.tags.size}")
+                        CoroutineScope(Dispatchers.IO).launch {
+                            val muteEntities = event.tags.map {
+                                MuteEntity(id = 0, kind = event.kind, tagType = it[0], entityId = it[1], private = 0, hexPub = event.pubKey, createdAt = event.createdAt)
+                            }
+                            db.applicationDao().insertAll(muteEntities)
                         }
+                    } else {
+                        notifyNewPrivateList(context)
                     }
+                }
+            }
+        }
+    }
+
+    fun publishMuteUser(context: Context, userHexKey: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val db = AppDatabase.getDatabase(context, "common")
+            val signerUsers = db.applicationDao().getSignerUsers()
+            val signerHexPubKey = signerUsers.first().hexPub
+
+            val lastCreatedAt = db.applicationDao().getMostRecentMuteListDate(signerHexPubKey) ?: 0
+            val muteEntity = MuteEntity(id = 0, kind = 10000, tagType = "p", entityId = userHexKey, private = 1, hexPub = signerHexPubKey, createdAt = lastCreatedAt)
+            db.applicationDao().insertMute(muteEntity)
+            publishPublicMute(context)
+        }
+    }
+
+    fun publishMuteThread(context: Context, event: NotificationEntity) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val db = AppDatabase.getDatabase(context, "common")
+            val signerUsers = db.applicationDao().getSignerUsers()
+            val signerHexPubKey = signerUsers.first().hexPub
+
+            val lastCreatedAt = db.applicationDao().getMostRecentMuteListDate(signerHexPubKey) ?: 0
+            val rootId = if (event.rootId == "") event.eventId else event.rootId ?: ""
+            val muteEntity = MuteEntity(id = 0, kind = 10000, tagType = "e", entityId = rootId, private = 0, hexPub = signerHexPubKey, createdAt = lastCreatedAt)
+            db.applicationDao().insertMute(muteEntity)
+            publishPublicMute(context)
+        }
+    }
+
+    private fun publishPublicMute(context: Context) {
+        val kind = 10000
+
+        val db = AppDatabase.getDatabase(context, "common")
+        val signerUsers = db.applicationDao().getSignerUsers()
+
+        if (signerUsers.isNotEmpty()) {
+            val signerPubKey = signerUsers.first().hexPub
+            val lastCreatedAt = db.applicationDao().getMostRecentMuteListDate(signerPubKey) ?: 0
+            val muteList = db.applicationDao().getMuteList(kind, signerPubKey, lastCreatedAt)
+
+            var publicMuteList = emptyArray<Array<String>>()
+            var privateMuteList = emptyArray<Array<String>>()
+
+            for (entity in muteList) {
+                if (entity.private == 1) {
+                    privateMuteList = privateMuteList.plus(arrayOf(entity.tagType, entity.entityId))
                 } else {
-                    notifyNewPrivateList(context)
+                    publicMuteList = publicMuteList.plus(arrayOf(entity.tagType, entity.entityId))
                 }
             }
 
-            Log.d("Pokey", "Public mute list : ${event.tags.size}")
-            event.tags.forEach {
-                val muteEntity = MuteEntity(id = 0, kind = event.kind, tagType = it[0], entityId = it[1], private = 0, hexPub = event.pubKey)
-                db.applicationDao().insertMute(muteEntity)
+            val pubKey = signerPubKey
+            val createdAt = TimeUtils.now()
+            ExternalSigner.encrypt(JSONArray(privateMuteList).toString(), signerPubKey) { content ->
+                val id = Event.generateId(pubKey, createdAt, kind, publicMuteList, content).toHexKey()
+                val event =
+                    Event(
+                        id = id,
+                        pubKey = pubKey,
+                        createdAt = createdAt,
+                        kind = kind,
+                        tags = publicMuteList,
+                        content = content,
+                        sig = "",
+                    )
+                ExternalSigner.sign(event) {
+                    val signeEvent = Event(
+                        id = id,
+                        pubKey = pubKey,
+                        createdAt = createdAt,
+                        kind = kind,
+                        tags = publicMuteList,
+                        content = content,
+                        sig = it,
+                    )
+                    Log.d("Pokey", "Mute public list : ${signeEvent.toJson()}")
+                    Client.send(signeEvent)
+                }
             }
         }
     }
@@ -522,7 +608,7 @@ object NostrClient {
                 ),
             ),
             onResponse = { event ->
-                manageMuteList(context, event as MuteListEvent, hexPubKey)
+                manageMuteList(context, event as MuteListEvent)
             },
         )
     }
@@ -563,7 +649,7 @@ object NostrClient {
 
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("EXTRA_NOTIFICATION_ACTION", "NEW_MUTE_LIST")
+            putExtra("EXTRA_NOTIFICATION_ACTION", "REFRESH")
         }
         val pendingIntent = PendingIntent.getActivity(
             context,

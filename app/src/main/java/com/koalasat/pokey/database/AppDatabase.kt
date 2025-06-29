@@ -80,6 +80,29 @@ val MIGRATION_9_10 =
         }
     }
 
+val MIGRATION_10_11 =
+    object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+            CREATE TABLE mute_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                kind INTEGER NOT NULL,
+                private INTEGER NOT NULL,
+                tagType TEXT NOT NULL,
+                hexPub TEXT NOT NULL,
+                entityId TEXT NOT NULL,
+                createdAt INTEGER NOT NULL,
+                UNIQUE(hexPub, entityId, createdAt) ON CONFLICT REPLACE
+            )
+                """.trimIndent(),
+            )
+            db.execSQL("DROP TABLE mute")
+            db.execSQL("ALTER TABLE mute_new RENAME TO mute")
+            db.execSQL("ALTER TABLE notification ADD COLUMN rootId TEXT NOT NULL DEFAULT '';")
+        }
+    }
+
 @Database(
     entities = [
         NotificationEntity::class,
@@ -87,7 +110,7 @@ val MIGRATION_9_10 =
         MuteEntity::class,
         UserEntity::class,
     ],
-    version = 10,
+    version = 11,
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -110,6 +133,7 @@ abstract class AppDatabase : RoomDatabase() {
                         .addMigrations(MIGRATION_7_8)
                         .addMigrations(MIGRATION_8_9)
                         .addMigrations(MIGRATION_9_10)
+                        .addMigrations(MIGRATION_10_11)
                         .build()
                 instance
             }

@@ -1,7 +1,9 @@
 package com.koalasat.pokey
 
 import android.Manifest
-import android.app.NotificationManager
+import android.app.AlertDialog
+import android.content.DialogInterface
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -26,6 +28,7 @@ import com.koalasat.pokey.models.NostrClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
     private val requestCodePostNotifications: Int = 1
@@ -39,8 +42,6 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        clearAllNotifications()
 
         val navView: BottomNavigationView = binding.navView
 
@@ -69,14 +70,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        intent?.let {
-            val action = it.getStringExtra("EXTRA_NOTIFICATION_ACTION")
-            if (action == "NEW_MUTE_LIST") {
-                val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                notificationManager.cancel(11111)
-                updateMuteLists()
-            }
-        }
+        handleMuteIntent(intent)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(
@@ -92,9 +86,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        handleMuteIntent(intent)
+    }
+
     override fun onResume() {
         super.onResume()
-        clearAllNotifications()
         Pokey.updateAppHasFocus(true)
     }
 
@@ -135,12 +133,7 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             R.id.refresh_private_mute -> {
-                CoroutineScope(Dispatchers.IO).launch {
-                    val dao = AppDatabase.getDatabase(applicationContext, "common").applicationDao()
-                    for (user in dao.getSignerUsers()) {
-                        NostrClient.fetchMuteList(applicationContext, user.hexPub)
-                    }
-                }
+                updateMuteLists()
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -164,9 +157,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun clearAllNotifications() {
-        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.cancelAll()
+    private fun handleMuteIntent(intent: Intent?) {
+        intent?.let {
+            val muteAction = it.getStringExtra("EXTRA_NOTIFICATION_ACTION")
+            when (muteAction) {
+                "MUTE" -> {
+                    val eventId = it.getStringExtra("eventId")
+                    val hexPub = it.getStringExtra("hexPub")
+
+                    if (eventId != null && hexPub != null) {
+                        displayMutePopup(hexPub, eventId)
+                    }
+                }
+                "REFRESH" -> {
+                    updateMuteLists()
+                }
+            }
+        }
     }
 
     private fun updateMuteLists() {
@@ -174,6 +181,50 @@ class MainActivity : AppCompatActivity() {
             val dao = AppDatabase.getDatabase(applicationContext, "common").applicationDao()
             for (user in dao.getSignerUsers()) {
                 NostrClient.fetchMuteList(applicationContext, user.hexPub)
+            }
+        }
+    }
+
+    private fun displayMutePopup(hexPub: String, eventId: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val db = AppDatabase.getDatabase(applicationContext, "common")
+            val notification = db.applicationDao().getNotification(hexPub, eventId)
+
+            val text = if ((notification.text?.length ?: 0) > 100) {
+                notification.text?.take(100) + "..."
+            } else {
+                notification.text
+            }
+
+            withContext(Dispatchers.Main) {
+                val builder = AlertDialog.Builder(this@MainActivity)
+                builder.setTitle(R.string.mute)
+                builder.setMessage(text)
+
+                builder.setPositiveButton(R.string.mute_thread) { dialog: DialogInterface, _: Int ->
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val db = AppDatabase.getDatabase(applicationContext, "common")
+                        val notification = db.applicationDao().getNotification(hexPub, eventId)
+                        NostrClient.publishMuteThread(applicationContext, notification)
+                        dialog.dismiss()
+                    }
+                }
+
+                builder.setNegativeButton(R.string.mute_user) { dialog: DialogInterface, _: Int ->
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val db = AppDatabase.getDatabase(applicationContext, "common")
+                        val notification = db.applicationDao().getNotification(hexPub, eventId)
+                        NostrClient.publishMuteUser(applicationContext, notification.accountKexPub)
+                        dialog.dismiss()
+                    }
+                }
+
+                builder.setNeutralButton(R.string.cancel) { dialog: DialogInterface, _: Int ->
+                    dialog.dismiss()
+                }
+
+                val dialog = builder.create()
+                dialog.show()
             }
         }
     }
