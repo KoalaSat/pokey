@@ -48,7 +48,7 @@
     <string name="recommend_relay_title">Relay inbox</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
-    <string name="mute_thread">Mute thread</string>
+    <string name="mute">Mute</string>
     <string name="add_account">Add account</string>
     <string name="primary_inbox_account">To avoid relay overload and battery drain, you can use only one account\'s inbox relays.</string>
     <string name="select">Select</string>
@@ -71,6 +71,7 @@
     <string name="subscription_hint">Subscriptions are fetch from your inbox relays</string>
     <string name="new_post">New post</string>
     <string name="mute_user">Mute user</string>
+    <string name="mute_thread">Mute thread</string>
     <string name="refresh_private_mute">Refresh mute lists</string>
     <string name="private_mute_updated">Private mute list updated: %d elements</string>
     <string name="external_signer_not_found">External signer not found</string>
@@ -78,4 +79,5 @@
     <string name="not_private_elements">Your private mute list is empty</string>
     <string name="new_mute_list_notification_title">New mute list version</string>
     <string name="new_mute_list_notification_text">New version of your private mute list detected. Tap this notification to apply it.</string>
+    <string name="cancel">Cancel</string>
 </resources>

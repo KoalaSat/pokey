@@ -117,7 +117,7 @@ class NotificationsService : Service() {
                             NostrClient.manageInboxRelays(this@NotificationsService, event)
                             return
                         } else if (intArrayOf(10000).contains(event.kind)) {
-                            NostrClient.manageMuteList(this@NotificationsService, event as MuteListEvent, userNotePubKey)
+                            NostrClient.manageMuteList(this@NotificationsService, event as MuteListEvent)
                             return
                         }
                     }
@@ -512,6 +512,15 @@ class NotificationsService : Service() {
     private fun displayNoteNotification(hexPub: String, title: String, text: String, authorBech32: String, avatar: Bitmap?, thumbnail: Bitmap?, event: Event) {
         val notificationManager =
             getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val intentAction1 = Intent(this, NotificationReceiver::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            action = "MUTE"
+            putExtra("eventId", event.id)
+            putExtra("hexPub", hexPub)
+            putExtra("notificationId", event.id.hashCode())
+        }
+        val pendingIntentMute = PendingIntent.getBroadcast(this, event.id.hashCode(), intentAction1, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
         var builder: NotificationCompat.Builder =
             NotificationCompat.Builder(
                 applicationContext,
@@ -522,6 +531,7 @@ class NotificationsService : Service() {
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setLargeIcon(avatar)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .addAction(0, getString(R.string.mute), pendingIntentMute)
                 .setAutoCancel(true)
 
         if (thumbnail != null) {
@@ -543,7 +553,7 @@ class NotificationsService : Service() {
 
         val pendingIntent = PendingIntent.getActivity(
             this@NotificationsService,
-            0,
+            event.id.hashCode(),
             deepLinkIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )

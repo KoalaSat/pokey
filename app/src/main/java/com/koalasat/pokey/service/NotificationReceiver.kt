@@ -7,33 +7,33 @@ import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.util.Log
 import androidx.core.content.ContextCompat.getSystemService
+import com.koalasat.pokey.MainActivity
 
 class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (context != null && intent !== null) {
-            when (intent.action) {
-                "MUTE_THREAD" -> {
-//                    val eventId = intent.getStringExtra("rootEventId")
-//                    val hexPub = intent.getStringExtra("hexPub")
-//                    Log.d("Pokey", "MUTE_THREAD rootEventId: $eventId")
-//                    Log.d("Pokey", "MUTE_THREAD hexPub: $hexPub")
-//                    if (eventId?.isNotEmpty() == true && hexPub?.isNotEmpty() == true) {
-//                        CoroutineScope(Dispatchers.IO).launch {
-//                            val db = AppDatabase.getDatabase(context, "common")
-//                            if (db.applicationDao().existsMuteEntity(eventId, hexPub) == 0) {
-//                                val muteEntity = MuteEntity(id = 0, kind = 10000, tagType = "e", entityId = eventId, private = 0, hexPub = hexPub)
-//                                db.applicationDao().insertMute(muteEntity)
-//                                Log.d("Pokey", "Muting event $eventId")
-//                                NostrClient.publishMuteList(context)
-//                            }
-//                        }
-//                    }
-                }
-            }
             val notificationId = intent.getIntExtra("notificationId", -1)
             if (notificationId != -1) {
                 val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                 notificationManager.cancel(notificationId)
+            }
+            when (intent.action) {
+                "MUTE" -> {
+                    val eventId = intent.getStringExtra("eventId")
+                    val hexPub = intent.getStringExtra("hexPub")
+                    if (eventId != null && hexPub != null) {
+                        Log.d("Pokey", "MUTE action received: $eventId, $hexPub")
+
+                        val popupIntent = Intent(context, MainActivity::class.java).apply {
+                            putExtra("eventId", eventId)
+                            putExtra("hexPub", hexPub)
+                            putExtra("EXTRA_NOTIFICATION_ACTION", "MUTE")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT)
+                        }
+
+                        context.startActivity(popupIntent)
+                    }
+                }
             }
         } else {
             Log.d("Pokey", "NotificationReceiver no context provided")

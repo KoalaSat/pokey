@@ -1,5 +1,7 @@
 package com.koalasat.pokey.ui.notifications
 
+import android.app.NotificationManager
+import android.content.Context.NOTIFICATION_SERVICE
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -46,6 +48,7 @@ class NotificationsFragment : Fragment() {
             loadNotifications()
         }
 
+        clearAllNotifications()
         loadNotifications()
 
         return root
@@ -75,5 +78,11 @@ class NotificationsFragment : Fragment() {
             notificationsView.adapter = notificationListAdapter
             notificationsView.adapter?.notifyDataSetChanged()
         }
+    }
+
+    private fun clearAllNotifications() {
+        val context = context ?: return
+        val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancelAll()
     }
 }

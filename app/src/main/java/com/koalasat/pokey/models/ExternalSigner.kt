@@ -121,6 +121,19 @@ object ExternalSigner {
         )
     }
 
+    fun encrypt(content: String, pubKey: String, onReady: (String) -> Unit) {
+        var externalSignerLauncher = externalSignerLaunchers[pubKey]
+        val id = UUID.randomUUID().toString()
+        intents.put(id, pubKey)
+        externalSignerLauncher?.openSignerApp(
+            content,
+            SignerType.NIP04_ENCRYPT,
+            pubKey,
+            id,
+            onReady,
+        )
+    }
+
     fun startLauncher(pubKey: String) {
         val externalSignerLauncher = ExternalSignerLauncher(pubKey, signerPackageName = EXTERNAL_SIGNER)
         externalSignerLauncher.registerLauncher(

@@ -11,6 +11,11 @@ import androidx.room.PrimaryKey
             value = ["entityId"],
             name = "mute_by_entityId",
         ),
+        Index(
+            value = ["hexPub", "entityId", "createdAt"],
+            name = "mute_unique_hexPub_entityId_createdAt",
+            unique = true,
+        ),
     ],
 )
 data class MuteEntity(
@@ -21,4 +26,5 @@ data class MuteEntity(
     val tagType: String,
     val hexPub: String,
     val entityId: String,
+    var createdAt: Long = 0L,
 )

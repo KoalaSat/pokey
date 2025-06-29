@@ -18,6 +18,9 @@ interface ApplicationDao {
     @Query("SELECT * FROM notification WHERE title != '' ORDER BY time DESC")
     fun getNotifications(): List<NotificationEntity>
 
+    @Query("SELECT * FROM notification WHERE accountKexPub = :accountKexPub AND eventId = :eventId")
+    fun getNotification(accountKexPub: String, eventId: String): NotificationEntity
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertNotification(notificationEntity: NotificationEntity): Long?
 
@@ -57,11 +60,17 @@ interface ApplicationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertMute(muteEntity: MuteEntity): Long?
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(muteEntities: List<MuteEntity>)
+
+    @Query("SELECT MAX(createdAt) FROM mute WHERE hexPub = :hexPub")
+    fun getMostRecentMuteListDate(hexPub: String): Long?
+
     @Query("SELECT EXISTS (SELECT 1 FROM mute WHERE entityId = :entityId)")
     fun existsMuteEntity(entityId: String): Int
 
-    @Query("SELECT * FROM mute WHERE kind = :kind AND hexPub = :hexPub")
-    fun getMuteList(kind: Int, hexPub: String): List<MuteEntity>
+    @Query("SELECT * FROM mute WHERE kind = :kind AND hexPub = :hexPub AND createdAt = :createdAt")
+    fun getMuteList(kind: Int, hexPub: String, createdAt: Long): List<MuteEntity>
 
     @Query("DELETE FROM mute where kind = :kind AND hexPub = :hexPub")
     fun deleteMuteList(kind: Int, hexPub: String): Int
