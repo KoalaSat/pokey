@@ -336,8 +336,9 @@ class NotificationsService : Service() {
             val existsEvent = db.applicationDao().existsNotification(event.id)
             if (existsEvent > 0) return@launch
 
-            val rootEventId = event.firstTaggedEvent().toString()
-            val mutedEvent = db.applicationDao().existsMuteEntity(rootEventId) == 1
+            val rootEventId = event.firstTaggedEvent()
+            val mutedEventId = if (rootEventId == null) event.id else rootEventId
+            val mutedEvent = db.applicationDao().existsMuteEntity(mutedEventId) == 1
             val mutedUser = db.applicationDao().existsMuteEntity(event.pubKey) == 1
             if (mutedEvent || mutedUser) return@launch
 
