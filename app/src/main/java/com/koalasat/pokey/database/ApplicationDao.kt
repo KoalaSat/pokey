@@ -15,10 +15,10 @@ interface ApplicationDao {
     @Query("SELECT EXISTS (SELECT 1 FROM notification WHERE eventId = :eventId)")
     fun existsNotification(eventId: String): Int
 
-    @Query("SELECT * FROM notification WHERE title != '' ORDER BY time DESC")
+    @Query("SELECT * FROM notification WHERE title != '' AND hidden = 0 ORDER BY time DESC")
     fun getNotifications(): List<NotificationEntity>
 
-    @Query("SELECT * FROM notification WHERE accountKexPub = :accountKexPub AND eventId = :eventId")
+    @Query("SELECT * FROM notification WHERE accountKexPub = :accountKexPub AND eventId = :eventId AND hidden = 0")
     fun getNotification(accountKexPub: String, eventId: String): NotificationEntity
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -26,6 +26,15 @@ interface ApplicationDao {
 
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun updateNotification(notificationEntity: NotificationEntity): Int
+
+    @Query("UPDATE notification SET hidden = 1 WHERE rootId = :eventId OR eventId = :eventId")
+    fun muteThreadNotifications(eventId: String): Int
+
+    @Query("UPDATE notification SET hidden = 1 WHERE pubKey = :pubKey")
+    fun muteUserNotifications(pubKey: String): Int
+
+    @Query("UPDATE notification SET hidden = 0 WHERE accountKexPub = :accountKexPub")
+    fun clearMutedNotifications(accountKexPub: String): Int
 
     @Query("SELECT EXISTS (SELECT 1 FROM relay WHERE url = :url AND kind = :kind AND hexPub = :hexPub)")
     fun existsRelay(url: String, kind: Int, hexPub: String): Int

@@ -464,6 +464,8 @@ object NostrClient {
 
             if (event.createdAt > lastCreatedAt) {
                 db.applicationDao().deleteMuteList(event.kind, event.pubKey)
+                db.applicationDao().clearMutedNotifications(event.pubKey)
+
                 val user = db.applicationDao().getUser(event.pubKey)
                 if (user?.signer == 1 && event.content != "") {
                     if (Pokey.appHasFocus.value == true) {
@@ -479,6 +481,11 @@ object NostrClient {
                                             if (tag.length() > 1) {
                                                 val muteEntity = MuteEntity(id = 0, kind = event.kind, tagType = tag.getString(0), entityId = tag.getString(1), private = 1, hexPub = event.pubKey, createdAt = event.createdAt)
                                                 db.applicationDao().insertMute(muteEntity)
+                                                if (muteEntity.tagType == "e") {
+                                                    db.applicationDao().muteThreadNotifications(muteEntity.entityId)
+                                                } else if (muteEntity.tagType == "p") {
+                                                    db.applicationDao().muteUserNotifications(muteEntity.entityId)
+                                                }
                                             }
                                         }
                                         val handler = Handler(Looper.getMainLooper())
@@ -502,8 +509,15 @@ object NostrClient {
 
                         Log.d("Pokey", "Public mute list : ${event.tags.size}")
                         CoroutineScope(Dispatchers.IO).launch {
-                            val muteEntities = event.tags.map {
-                                MuteEntity(id = 0, kind = event.kind, tagType = it[0], entityId = it[1], private = 0, hexPub = event.pubKey, createdAt = event.createdAt)
+                            var muteEntities = emptyList<MuteEntity>()
+                            event.tags.forEach {
+                                val newEntity = MuteEntity(id = 0, kind = event.kind, tagType = it[0], entityId = it[1], private = 0, hexPub = event.pubKey, createdAt = event.createdAt)
+                                muteEntities = muteEntities.plus(newEntity)
+                                if (newEntity.tagType == "e") {
+                                    db.applicationDao().muteThreadNotifications(newEntity.entityId)
+                                } else if (newEntity.tagType == "p") {
+                                    db.applicationDao().muteUserNotifications(newEntity.entityId)
+                                }
                             }
                             db.applicationDao().insertAll(muteEntities)
                         }
@@ -515,15 +529,16 @@ object NostrClient {
         }
     }
 
-    fun publishMuteUser(context: Context, userHexKey: String) {
+    fun publishMuteUser(context: Context, event: NotificationEntity) {
         CoroutineScope(Dispatchers.IO).launch {
             val db = AppDatabase.getDatabase(context, "common")
             val signerUsers = db.applicationDao().getSignerUsers()
             val signerHexPubKey = signerUsers.first().hexPub
 
             val lastCreatedAt = db.applicationDao().getMostRecentMuteListDate(signerHexPubKey) ?: 0
-            val muteEntity = MuteEntity(id = 0, kind = 10000, tagType = "p", entityId = userHexKey, private = 1, hexPub = signerHexPubKey, createdAt = lastCreatedAt)
+            val muteEntity = MuteEntity(id = 0, kind = 10000, tagType = "p", entityId = event.pubKey, private = 1, hexPub = signerHexPubKey, createdAt = lastCreatedAt)
             db.applicationDao().insertMute(muteEntity)
+            db.applicationDao().muteUserNotifications(event.pubKey)
             publishPublicMute(context)
         }
     }
@@ -535,9 +550,10 @@ object NostrClient {
             val signerHexPubKey = signerUsers.first().hexPub
 
             val lastCreatedAt = db.applicationDao().getMostRecentMuteListDate(signerHexPubKey) ?: 0
-            val rootId = if (event.rootId == "") event.eventId else event.rootId ?: ""
+            val rootId = if (event.rootId == "") event.eventId else event.rootId
             val muteEntity = MuteEntity(id = 0, kind = 10000, tagType = "e", entityId = rootId, private = 0, hexPub = signerHexPubKey, createdAt = lastCreatedAt)
             db.applicationDao().insertMute(muteEntity)
+            db.applicationDao().muteThreadNotifications(rootId)
             publishPublicMute(context)
         }
     }

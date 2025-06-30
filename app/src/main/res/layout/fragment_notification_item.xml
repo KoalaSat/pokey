@@ -60,19 +60,30 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/accountAvatarLayout"
+            android:id="@+id/optionsLayout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true">
-
-                <ImageView
-                    android:id="@+id/accountAvatar"
-                    android:layout_width="64px"
-                    android:layout_height="wrap_content"
-                    android:src="@mipmap/ic_launcher"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+                        <ImageView
+                            android:id="@+id/accountAvatar"
+                            android:layout_width="64px"
+                            android:layout_height="wrap_content"
+                            android:src="@mipmap/ic_launcher"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toTopOf="parent" />
+                        <Button
+                            android:id="@+id/optionsButton"
+                            android:layout_width="64px"
+                            android:layout_height="match_parent"
+                            android:background="@android:color/transparent"
+                            android:drawableTop="@drawable/ic_disabled_visible_24dp"
+                            android:text=""
+                            android:layout_gravity="center" />
+                </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
 </RelativeLayout>

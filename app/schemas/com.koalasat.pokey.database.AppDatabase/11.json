@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 11,
-    "identityHash": "605f7c02a6ebeda1d38127f8d5c8b468",
+    "identityHash": "bcca3a58f4f0ae0f62390c6c9e4a3ffa",
     "entities": [
       {
         "tableName": "notification",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `eventId` TEXT NOT NULL, `time` INTEGER NOT NULL, `accountKexPub` TEXT NOT NULL, `nip32` TEXT NOT NULL, `rootId` TEXT NOT NULL, `title` TEXT, `text` TEXT, `avatarUrl` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `eventId` TEXT NOT NULL, `time` INTEGER NOT NULL, `pubKey` TEXT NOT NULL, `accountKexPub` TEXT NOT NULL, `nip32` TEXT NOT NULL, `rootId` TEXT NOT NULL, `hidden` INTEGER NOT NULL, `title` TEXT, `text` TEXT, `avatarUrl` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -27,6 +27,12 @@
             "notNull": true
           },
           {
+            "fieldPath": "pubKey",
+            "columnName": "pubKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
             "fieldPath": "accountKexPub",
             "columnName": "accountKexPub",
             "affinity": "TEXT",
@@ -42,6 +48,12 @@
             "fieldPath": "rootId",
             "columnName": "rootId",
             "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hidden",
+            "columnName": "hidden",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -337,7 +349,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '605f7c02a6ebeda1d38127f8d5c8b468')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bcca3a58f4f0ae0f62390c6c9e4a3ffa')"
     ]
   }
 }

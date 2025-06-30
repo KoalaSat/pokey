@@ -4,9 +4,12 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
+import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat.startActivity
@@ -14,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.koalasat.pokey.R
 import com.koalasat.pokey.database.NotificationEntity
 import com.koalasat.pokey.database.UserEntity
+import com.koalasat.pokey.models.NostrClient
 import com.koalasat.pokey.utils.images.CircleTransform
 import com.squareup.picasso.Picasso
 
@@ -78,8 +82,37 @@ class NotificationListAdapter(
             }
         }
 
+        val optionsButton = holder.itemView.findViewById<Button>(R.id.optionsButton)
+        if (userEntity?.signer == 1) {
+            optionsButton.setOnClickListener { view ->
+                displayMutePopup(view, notificationEntity)
+            }
+        } else {
+            optionsButton.visibility = View.GONE
+        }
+
         holder.bind(notificationList[position], userEntity)
     }
 
     override fun getItemCount() = notificationList.size
+
+    private fun displayMutePopup(view: View, notification: NotificationEntity) {
+        val popupMenu = PopupMenu(view.context, view)
+        popupMenu.menuInflater.inflate(R.menu.notification_menu, popupMenu.menu)
+
+        popupMenu.setOnMenuItemClickListener { item: MenuItem ->
+            when (item.itemId) {
+                R.id.mute_thread -> {
+                    NostrClient.publishMuteThread(view.context, notification)
+                    true
+                }
+                R.id.mute_user -> {
+                    NostrClient.publishMuteUser(view.context, notification)
+                    true
+                }
+                else -> false
+            }
+        }
+        popupMenu.show()
+    }
 }

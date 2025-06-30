@@ -336,24 +336,28 @@ class NotificationsService : Service() {
             val existsEvent = db.applicationDao().existsNotification(event.id)
             if (existsEvent > 0) return@launch
 
-            val rootEventId = event.firstTaggedEvent().toString()
-            val mutedEventId = if (rootEventId == "") event.id else rootEventId
-            val mutedEvent = db.applicationDao().existsMuteEntity(mutedEventId) == 1
-            val mutedUser = db.applicationDao().existsMuteEntity(event.pubKey) == 1
-            if (mutedEvent || mutedUser) return@launch
+            val notificationHexPub = event.taggedUsers().find { it in hexPubKeysList }
 
+            if (notificationHexPub == null) return@launch
+
+            if (!event.hasVerifiedSignature()) return@launch
+
+            val rootEventId = if (event.firstTaggedEvent() == null) "" else event.firstTaggedEvent().toString()
             var notificationEntity = NotificationEntity(
                 id = 0,
                 eventId = event.id,
-                accountKexPub = event.pubKey,
+                pubKey = event.pubKey,
+                accountKexPub = notificationHexPub,
                 time = event.createdAt,
                 rootId = rootEventId,
             )
             notificationEntity.id = db.applicationDao().insertNotification(notificationEntity)!!
 
-            if (!event.hasVerifiedSignature()) return@launch
+            val mutedEventId = if (rootEventId == "") event.id else rootEventId
+            val mutedEvent = db.applicationDao().existsMuteEntity(mutedEventId) == 1
+            val mutedUser = db.applicationDao().existsMuteEntity(event.pubKey) == 1
+            if (mutedEvent || mutedUser) return@launch
 
-            val notificationHexPub = event.taggedUsers().find { it in hexPubKeysList }
             val user = db.applicationDao().getUser(notificationHexPub.toString())
             val hexPubKey = event.pubKey
 
@@ -514,14 +518,6 @@ class NotificationsService : Service() {
     private fun displayNoteNotification(hexPub: String, title: String, text: String, authorBech32: String, avatar: Bitmap?, thumbnail: Bitmap?, event: Event) {
         val notificationManager =
             getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val intentAction1 = Intent(this, NotificationReceiver::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            action = "MUTE"
-            putExtra("eventId", event.id)
-            putExtra("hexPub", hexPub)
-            putExtra("notificationId", event.id.hashCode())
-        }
-        val pendingIntentMute = PendingIntent.getBroadcast(this, event.id.hashCode(), intentAction1, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
         var builder: NotificationCompat.Builder =
             NotificationCompat.Builder(
@@ -533,7 +529,6 @@ class NotificationsService : Service() {
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setLargeIcon(avatar)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .addAction(0, getString(R.string.mute), pendingIntentMute)
                 .setAutoCancel(true)
 
         if (thumbnail != null) {
