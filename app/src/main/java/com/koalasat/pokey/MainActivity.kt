@@ -1,9 +1,6 @@
 package com.koalasat.pokey
 
 import android.Manifest
-import android.app.AlertDialog
-import android.content.DialogInterface
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -28,7 +25,6 @@ import com.koalasat.pokey.models.NostrClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
     private val requestCodePostNotifications: Int = 1
@@ -70,8 +66,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        handleMuteIntent(intent)
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(
                 this,
@@ -84,11 +78,6 @@ class MainActivity : AppCompatActivity() {
                 requestCodePostNotifications,
             )
         }
-    }
-
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        handleMuteIntent(intent)
     }
 
     override fun onResume() {
@@ -117,15 +106,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.menu_main, menu)
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
         return when (item.itemId) {
             R.id.action_settings -> {
@@ -157,74 +142,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun handleMuteIntent(intent: Intent?) {
-        intent?.let {
-            val muteAction = it.getStringExtra("EXTRA_NOTIFICATION_ACTION")
-            when (muteAction) {
-                "MUTE" -> {
-                    val eventId = it.getStringExtra("eventId")
-                    val hexPub = it.getStringExtra("hexPub")
-
-                    if (eventId != null && hexPub != null) {
-                        displayMutePopup(hexPub, eventId)
-                    }
-                }
-                "REFRESH" -> {
-                    updateMuteLists()
-                }
-            }
-        }
-    }
-
     private fun updateMuteLists() {
         CoroutineScope(Dispatchers.IO).launch {
             val dao = AppDatabase.getDatabase(applicationContext, "common").applicationDao()
             for (user in dao.getSignerUsers()) {
                 NostrClient.fetchMuteList(applicationContext, user.hexPub)
-            }
-        }
-    }
-
-    private fun displayMutePopup(hexPub: String, eventId: String) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val db = AppDatabase.getDatabase(applicationContext, "common")
-            val notification = db.applicationDao().getNotification(hexPub, eventId)
-
-            val text = if ((notification.text?.length ?: 0) > 100) {
-                notification.text?.take(100) + "..."
-            } else {
-                notification.text
-            }
-
-            withContext(Dispatchers.Main) {
-                val builder = AlertDialog.Builder(this@MainActivity)
-                builder.setTitle(R.string.mute)
-                builder.setMessage(text)
-
-                builder.setPositiveButton(R.string.mute_thread) { dialog: DialogInterface, _: Int ->
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val db = AppDatabase.getDatabase(applicationContext, "common")
-                        val notification = db.applicationDao().getNotification(hexPub, eventId)
-                        NostrClient.publishMuteThread(applicationContext, notification)
-                        dialog.dismiss()
-                    }
-                }
-
-                builder.setNegativeButton(R.string.mute_user) { dialog: DialogInterface, _: Int ->
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val db = AppDatabase.getDatabase(applicationContext, "common")
-                        val notification = db.applicationDao().getNotification(hexPub, eventId)
-                        NostrClient.publishMuteUser(applicationContext, notification.accountKexPub)
-                        dialog.dismiss()
-                    }
-                }
-
-                builder.setNeutralButton(R.string.cancel) { dialog: DialogInterface, _: Int ->
-                    dialog.dismiss()
-                }
-
-                val dialog = builder.create()
-                dialog.show()
             }
         }
     }
