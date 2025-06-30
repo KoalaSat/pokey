@@ -26,8 +26,7 @@
             android:id="@+id/titleViewItemLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_toEndOf="@+id/userAvatarLayout"
-            android:layout_toStartOf="@+id/accountAvatarLayout" >
+            android:layout_toEndOf="@+id/userAvatarLayout" >
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
