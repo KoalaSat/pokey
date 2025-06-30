@@ -3,7 +3,6 @@ Pokey v0.2.3-beta is now out! :rocket:
 ## What's new
 ### Features
 - 
-    New "Mute" action in notification. It'll open the app and allow the users to mute a thread or an user.
 
 ### Fix
 -
