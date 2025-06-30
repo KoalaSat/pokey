@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 11,
-    "identityHash": "bcca3a58f4f0ae0f62390c6c9e4a3ffa",
+    "identityHash": "ea336423dcbbf2a3610e9b748cd619eb",
     "entities": [
       {
         "tableName": "notification",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `eventId` TEXT NOT NULL, `time` INTEGER NOT NULL, `pubKey` TEXT NOT NULL, `accountKexPub` TEXT NOT NULL, `nip32` TEXT NOT NULL, `rootId` TEXT NOT NULL, `hidden` INTEGER NOT NULL, `title` TEXT, `text` TEXT, `avatarUrl` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `eventId` TEXT NOT NULL, `time` INTEGER NOT NULL, `pubKey` TEXT NOT NULL, `accountKexPub` TEXT NOT NULL, `nip32` TEXT NOT NULL, `rootId` TEXT NOT NULL, `hidden` INTEGER NOT NULL, `title` TEXT NOT NULL, `text` TEXT NOT NULL, `avatarUrl` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -60,19 +60,19 @@
             "fieldPath": "title",
             "columnName": "title",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "text",
             "columnName": "text",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "avatarUrl",
             "columnName": "avatarUrl",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -349,7 +349,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bcca3a58f4f0ae0f62390c6c9e4a3ffa')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ea336423dcbbf2a3610e9b748cd619eb')"
     ]
   }
 }

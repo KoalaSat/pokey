@@ -83,32 +83,45 @@ val MIGRATION_9_10 =
 val MIGRATION_10_11 =
     object : Migration(10, 11) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL(
-                """
-            CREATE TABLE mute_new (
-                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                kind INTEGER NOT NULL,
-                private INTEGER NOT NULL,
-                tagType TEXT NOT NULL,
-                hexPub TEXT NOT NULL,
-                entityId TEXT NOT NULL,
-                createdAt INTEGER NOT NULL,
-                UNIQUE(hexPub, entityId, createdAt) ON CONFLICT REPLACE
-            )
-                """.trimIndent(),
-            )
             db.execSQL("DROP TABLE mute")
-            db.execSQL("ALTER TABLE mute_new RENAME TO mute")
-            db.execSQL("ALTER TABLE notification ADD COLUMN rootId TEXT NOT NULL DEFAULT '';")
-            db.execSQL("ALTER TABLE notification ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0;")
             db.execSQL(
                 """
-                CREATE INDEX mute_by_entityId ON mute(entityId)
+                CREATE TABLE mute (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    kind INTEGER NOT NULL,
+                    private INTEGER NOT NULL,
+                    tagType TEXT NOT NULL,
+                    hexPub TEXT NOT NULL,
+                    entityId TEXT NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    UNIQUE(hexPub, entityId, createdAt) ON CONFLICT REPLACE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX mute_by_entityId ON mute(entityId)")
+            db.execSQL("CREATE UNIQUE INDEX mute_unique_hexPub_entityId_createdAt ON mute(hexPub, entityId, createdAt)")
+
+            db.execSQL("DROP TABLE notification")
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `notification` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `eventId` TEXT NOT NULL,
+                    `time` INTEGER NOT NULL,
+                    `pubKey` TEXT NOT NULL,
+                    `accountKexPub` TEXT NOT NULL,
+                    `nip32` TEXT NOT NULL DEFAULT '',
+                    `rootId` TEXT NOT NULL DEFAULT '',
+                    `hidden` INTEGER NOT NULL DEFAULT 0,
+                    `title` TEXT NOT NULL DEFAULT '',
+                    `text` TEXT NOT NULL DEFAULT '',
+                    `avatarUrl` TEXT NOT NULL DEFAULT ''
+                )
                 """.trimIndent(),
             )
             db.execSQL(
                 """
-                CREATE UNIQUE INDEX mute_unique_hexPub_entityId_createdAt ON mute(hexPub, entityId, createdAt)
+                CREATE INDEX IF NOT EXISTS `notification_by_eventId` ON `notification` (`eventId`)
                 """.trimIndent(),
             )
         }
