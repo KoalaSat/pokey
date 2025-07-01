@@ -12,6 +12,11 @@
         android:title="@string/title_notifications" />
 
     <item
+        android:id="@+id/navigation_muted"
+        android:icon="@drawable/ic_disabled_visible_24dp"
+        android:title="@string/title_muted" />
+
+    <item
         android:id="@+id/navigation_relays"
         android:icon="@drawable/ic_relays_black_24dp"
         android:title="@string/title_relays" />

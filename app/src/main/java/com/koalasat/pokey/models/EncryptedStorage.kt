@@ -11,6 +11,7 @@ object PrefKeys {
     const val NOSTR_BROADCAST = "broadcast"
     const val NOSTR_MAX_PUBKEYS = "maxPubKeys"
     const val INBOX_PUBKEY = "inbox_pubkey"
+    const val MUTE_PUBKEY = "mute_pubkey"
     const val INBOX_SUBSCRIPTION = "inbox_subscription"
 }
 
@@ -29,6 +30,9 @@ object EncryptedStorage {
 
     private val _inboxPubKey = MutableLiveData<String>()
     val inboxPubKey: LiveData<String> get() = _inboxPubKey
+
+    private val _mutePubKey = MutableLiveData<String>()
+    val mutePubKey: LiveData<String> get() = _mutePubKey
 
     private val _broadcast = MutableLiveData<Boolean>().apply { DefaultKeys.BROADCAST }
     val broadcast: LiveData<Boolean> get() = _broadcast
@@ -53,6 +57,7 @@ object EncryptedStorage {
         _broadcast.postValue(sharedPreferences.getBoolean(PrefKeys.NOSTR_BROADCAST, DefaultKeys.BROADCAST))
         _maxPubKeys.postValue(sharedPreferences.getInt(PrefKeys.NOSTR_MAX_PUBKEYS, DefaultKeys.MAX_PUBKEYS))
         _inboxPubKey.postValue(sharedPreferences.getString(PrefKeys.INBOX_PUBKEY, ""))
+        _mutePubKey.postValue(sharedPreferences.getString(PrefKeys.MUTE_PUBKEY, ""))
         _inboxSubscription.postValue(sharedPreferences.getString(PrefKeys.INBOX_SUBSCRIPTION, ""))
     }
 
@@ -69,6 +74,11 @@ object EncryptedStorage {
     fun updateInboxPubKey(pubKey: String) {
         sharedPreferences.edit().putString(PrefKeys.INBOX_PUBKEY, pubKey).apply()
         _inboxPubKey.postValue(pubKey)
+    }
+
+    fun updateMutePubKey(pubKey: String) {
+        sharedPreferences.edit().putString(PrefKeys.MUTE_PUBKEY, pubKey).apply()
+        _mutePubKey.postValue(pubKey)
     }
 
     fun updateInboxSubscription(value: String) {

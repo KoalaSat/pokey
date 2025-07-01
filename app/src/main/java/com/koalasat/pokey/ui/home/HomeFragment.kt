@@ -298,6 +298,7 @@ class HomeFragment : Fragment() {
             dao?.insertUser(user)
 
             if (EncryptedStorage.inboxPubKey.value?.isNotEmpty() != true) EncryptedStorage.updateInboxPubKey(hexPukKey.toString())
+            if (EncryptedStorage.mutePubKey.value?.isNotEmpty() != true) EncryptedStorage.updateMutePubKey(hexPukKey.toString())
 
             viewModel.loadAccounts()
 
@@ -334,6 +335,7 @@ class HomeFragment : Fragment() {
                         if (users?.size!! > 0 && EncryptedStorage.inboxPubKey.value == user.hexPub) {
                             var nextUser = users.first()
                             EncryptedStorage.updateInboxPubKey(nextUser.hexPub)
+                            EncryptedStorage.updateMutePubKey(nextUser.hexPub)
                         }
                         viewModel.loadAccounts()
                     }
