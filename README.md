@@ -38,8 +38,8 @@ What is Nostr: https://www.nostr.how
 - [x] Multi-account
 - [x] InBox Relays management
 - [x] Granulated notification settings
-- [ ] Mute buttons
-- [x] Mute lists
+- [x] Mute actions
+- [x] Mute view
 - [x] ~~Last 20~~ notifications view
 - [ ] Custom emojis
 - [x] Search term notification
