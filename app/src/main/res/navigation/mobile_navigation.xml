@@ -19,6 +19,12 @@
         tools:layout="@layout/fragment_relays" />
 
     <fragment
+        android:id="@+id/navigation_muted"
+        android:name="com.koalasat.pokey.ui.muted.MutedFragment"
+        android:label="@string/title_muted"
+        tools:layout="@layout/fragment_muted" />
+
+    <fragment
         android:id="@+id/navigation_configuration"
         android:name="com.koalasat.pokey.ui.configuration.ConfigurationFragment"
         android:label="@string/title_configuration"

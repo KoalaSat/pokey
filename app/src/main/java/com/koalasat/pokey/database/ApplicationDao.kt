@@ -27,11 +27,11 @@ interface ApplicationDao {
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun updateNotification(notificationEntity: NotificationEntity): Int
 
-    @Query("UPDATE notification SET hidden = 1 WHERE rootId = :eventId OR eventId = :eventId")
-    fun muteThreadNotifications(eventId: String): Int
+    @Query("UPDATE notification SET hidden = :hidden WHERE rootId = :eventId OR eventId = :eventId")
+    fun updateMuteThreadNotifications(eventId: String, hidden: Int): Int
 
-    @Query("UPDATE notification SET hidden = 1 WHERE pubKey = :pubKey")
-    fun muteUserNotifications(pubKey: String): Int
+    @Query("UPDATE notification SET hidden = :hidden WHERE pubKey = :pubKey")
+    fun updateMuteUserNotifications(pubKey: String, hidden: Int): Int
 
     @Query("UPDATE notification SET hidden = 0 WHERE accountKexPub = :accountKexPub")
     fun clearMutedNotifications(accountKexPub: String): Int
@@ -83,6 +83,9 @@ interface ApplicationDao {
 
     @Query("DELETE FROM mute where kind = :kind AND hexPub = :hexPub")
     fun deleteMuteList(kind: Int, hexPub: String): Int
+
+    @Query("DELETE FROM mute where id = :id")
+    fun deleteMuteEntity(id: Int): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertUser(userEntity: UserEntity): Long?

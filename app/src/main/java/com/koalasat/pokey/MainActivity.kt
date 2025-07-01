@@ -42,12 +42,12 @@ class MainActivity : AppCompatActivity() {
         val navView: BottomNavigationView = binding.navView
 
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
+
         appBarConfiguration = AppBarConfiguration(
             setOf(
                 R.id.navigation_home,
                 R.id.navigation_notifications,
+                R.id.navigation_muted,
                 R.id.navigation_relays,
             ),
         )
@@ -63,6 +63,12 @@ class MainActivity : AppCompatActivity() {
                 navView.visibility = View.GONE
             } else {
                 navView.visibility = View.VISIBLE
+            }
+        }
+
+        intent?.let {
+            if (it.action == "REFRESH") {
+                updateMuteLists()
             }
         }
 
@@ -117,10 +123,6 @@ class MainActivity : AppCompatActivity() {
                 navController.navigate(R.id.navigation_configuration)
                 true
             }
-            R.id.refresh_private_mute -> {
-                updateMuteLists()
-                true
-            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -145,7 +147,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateMuteLists() {
         CoroutineScope(Dispatchers.IO).launch {
             val dao = AppDatabase.getDatabase(applicationContext, "common").applicationDao()
-            for (user in dao.getSignerUsers()) {
+            for (user in dao.getUsers()) {
                 NostrClient.fetchMuteList(applicationContext, user.hexPub)
             }
         }

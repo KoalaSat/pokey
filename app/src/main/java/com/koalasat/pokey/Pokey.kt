@@ -57,6 +57,8 @@ class Pokey : Application() {
         val loadingPublicRelays: LiveData<Boolean> get() = _loadingPublicRelays
         private val _loadingPrivateRelays = MutableLiveData(false)
         val loadingPrivateRelays: LiveData<Boolean> get() = _loadingPrivateRelays
+        private val _loadingMuteList = MutableLiveData(false)
+        val loadingMuteList: LiveData<Boolean> get() = _loadingMuteList
         private val _lastNotificationTime = MutableLiveData<Long>()
         val lastNotificationTime: LiveData<Long> get() = _lastNotificationTime
         private val _appHasFocus = MutableLiveData<Boolean>()
@@ -80,6 +82,10 @@ class Pokey : Application() {
 
         fun updateLoadingPrivateRelays(value: Boolean) {
             _loadingPrivateRelays.postValue(value)
+        }
+
+        fun updateLoadingMuteList(value: Boolean) {
+            _loadingMuteList.postValue(value)
         }
 
         fun updateNewPrivateRelay(time: Long) {

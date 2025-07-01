@@ -3,6 +3,8 @@ package com.koalasat.pokey.ui.relays
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
@@ -59,22 +61,34 @@ class RelaysFragment : Fragment() {
         Pokey.isEnabled.observe(viewLifecycleOwner) {
             if (it) {
                 binding.activeAccount.visibility = View.VISIBLE
-                CoroutineScope(Dispatchers.IO).launch {
-                    val dao = AppDatabase.getDatabase(requireContext(), "common").applicationDao()
-                    val activeUser = dao.getUser(EncryptedStorage.inboxPubKey.value.toString())
-                    if (activeUser != null) {
-                        binding.activeAccount.text = if (activeUser.name?.isNotEmpty() == true) {
-                            activeUser.name
-                        } else {
-                            Hex.decode(activeUser.hexPub).toNpub().substring(0, 10) + "..."
-                        }
-                    }
-                }
-                binding.activeAccount.visibility = View.VISIBLE
                 binding.titleRelays.visibility = View.GONE
             } else {
                 binding.activeAccount.visibility = View.GONE
                 binding.titleRelays.visibility = View.VISIBLE
+            }
+        }
+
+        EncryptedStorage.inboxPubKey.observeForever {
+            CoroutineScope(Dispatchers.IO).launch {
+                val dao = AppDatabase.getDatabase(requireContext(), "common").applicationDao()
+                val user = dao.getUser(EncryptedStorage.inboxPubKey.value.toString())
+                if (user != null) {
+                    val handler = Handler(Looper.getMainLooper())
+                    handler.post {
+                        if (user.signer != 1) {
+                            binding.publishPublicRelay.visibility = View.GONE
+                            binding.publishPrivateRelay.visibility = View.GONE
+                        } else {
+                            binding.publishPublicRelay.visibility = View.VISIBLE
+                            binding.publishPrivateRelay.visibility = View.VISIBLE
+                        }
+                        binding.activeAccount.text = if (user.name?.isNotEmpty() == true) {
+                            user.name
+                        } else {
+                            Hex.decode(user.hexPub).toNpub().substring(0, 10) + "..."
+                        }
+                    }
+                }
             }
         }
 
