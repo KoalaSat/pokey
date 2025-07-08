@@ -45,10 +45,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     withContext(Dispatchers.Main) {
                         _accountList.postValue(users)
                         if (users.isNotEmpty()) {
-                            if (EncryptedStorage.inboxPubKey.value?.isEmpty() == true || EncryptedStorage.mutePubKey.value?.isEmpty() == true) {
-                                EncryptedStorage.updateInboxPubKey(users.first().toString())
-                                EncryptedStorage.updateMutePubKey(users.first().toString())
-                            }
+                            if (EncryptedStorage.inboxPubKey.value?.isEmpty() == true) EncryptedStorage.updateInboxPubKey(users.first().toString())
+                            if (EncryptedStorage.mutePubKey.value?.isEmpty() == true) EncryptedStorage.updateMutePubKey(users.first().toString())
                         }
                     }
                 }
